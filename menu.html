@@ -289,11 +289,24 @@
     }
 
     @keyframes slideUp {
-      from { transform: translateY(50px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(0); opacity: 1; }
+}
 
-    .modal-header {
+/* ⭐ Animation cho thông báo cập nhật */
+@keyframes slideDown {
+  from { 
+    transform: translateX(-50%) translateY(-100px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(-50%) translateY(0); 
+    opacity: 1; 
+  }
+}
+
+.modal-header {
+
       background: #e74c3c;
       color: white;
       padding: 25px;
@@ -963,22 +976,25 @@ function subscribeToOrders() {
       (payload) => {
         console.log('🔔 Order changed:', payload);
         
-        // Reload đơn hàng khi có thay đổi
+        // ⭐ Reload đơn hàng khi có thay đổi (cả INSERT và UPDATE)
         loadCurrentOrders();
         
-        // Nếu là UPDATE và đang ở tab Menu → hiện thông báo
-        if (payload.eventType === 'UPDATE') {
-          const currentTab = document.querySelector('.tab.active');
-          const tabIndex = Array.from(document.querySelectorAll('.tab')).indexOf(currentTab);
-          
-          if (tabIndex === 0) {  // Đang ở tab Menu
-            alert('📝 Nhân viên đã cập nhật đơn hàng của bạn!');
-          }
+        // ⭐ Nếu đang ở tab Menu → hiện thông báo
+        const currentTab = document.querySelector('.tab.active');
+        const tabIndex = Array.from(document.querySelectorAll('.tab')).indexOf(currentTab);
+        
+        if (payload.eventType === 'UPDATE' && tabIndex === 0) {
+          // Tạo thông báo nhẹ nhàng thay vì alert
+          showUpdateNotification('📝 Nhân viên đã cập nhật đơn hàng của bạn!');
+        }
+        
+        if (payload.eventType === 'INSERT' && tabIndex === 0) {
+          showUpdateNotification('✅ Đơn hàng mới đã được tạo!');
         }
       }
     )
     .subscribe();
-  
+
   // ⭐ THÊM MỚI - Lắng nghe thay đổi session
   supabase
     .channel('customer-session')
@@ -1000,6 +1016,40 @@ function subscribeToOrders() {
       }
     )
     .subscribe();
+}
+
+// ⭐ Hàm hiển thị thông báo nhẹ nhàng
+function showUpdateNotification(message) {
+  // Xóa thông báo cũ nếu có
+  const oldNotif = document.getElementById('updateNotification');
+  if (oldNotif) oldNotif.remove();
+  
+  // Tạo thông báo mới
+  const notif = document.createElement('div');
+  notif.id = 'updateNotification';
+  notif.innerHTML = message;
+  notif.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 50px;
+    box-shadow: 0 4px 20px rgba(39, 174, 96, 0.4);
+    z-index: 9999;
+    font-weight: 600;
+    animation: slideDown 0.5s ease;
+  `;
+  
+  document.body.appendChild(notif);
+  
+  // Tự động ẩn sau 3 giây
+  setTimeout(() => {
+    notif.style.animation = 'slideUp 0.5s ease';
+    setTimeout(() => notif.remove(), 500);
+  }, 3000);
 }
 
 // Kiểm tra session mỗi 30 giây
