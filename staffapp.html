@@ -1163,7 +1163,7 @@ localStorage.removeItem('pizza_current_store');
     document.getElementById('orderNote').value = '';
     renderMenu();
     updateOrderSummary();
-    await saveData();
+    renderOrders(); 
     alert('Đơn hàng đã được tạo!');
     switchTab(1);
 
