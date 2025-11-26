@@ -885,6 +885,9 @@
   currentUser = userId;
   currentStore = store;
 
+  localStorage.setItem('pizza_current_user', userId);
+  localStorage.setItem('pizza_current_store', store);
+
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
   document.getElementById('storeBadge').textContent = store;
@@ -907,6 +910,9 @@
 
     function logout() {
   saveData();
+  // Thêm ngay sau saveData();
+localStorage.removeItem('pizza_current_user');
+localStorage.removeItem('pizza_current_store');
   
   // Hủy real-time subscription
   if (ordersSubscription) {
@@ -1237,39 +1243,7 @@
 
     if (error) throw error;
 
-    // Vô hiệu hóa session khi thanh toán
-if (order.order_source === 'qr') {
-  let sessionError = null;
-  
-  // Thử đóng theo token trước
-  if (order.session_token) {
-    const { error } = await supabase
-      .from('qr_sessions')
-      .update({ status: 'closed' })
-      .eq('token', order.session_token)
-      .eq('status', 'active'); // CHỈ đóng nếu đang active
     
-    sessionError = error;
-  } 
-  
-  // Nếu không có token hoặc update thất bại → Đóng theo bàn
-  if (!order.session_token || sessionError) {
-    const { error } = await supabase
-      .from('qr_sessions')
-      .update({ status: 'closed' })
-      .eq('store_code', order.store_code)
-      .eq('table_number', String(order.table_number))
-      .eq('status', 'active');
-    
-    if (error) {
-      console.error('⚠️ Không thể đóng session:', error);
-    } else {
-      console.log(`✅ Đã đóng session bàn ${order.table_number}`);
-    }
-  } else {
-    console.log('✅ Đã đóng session token:', order.session_token);
-  }
-}
     // Cập nhật báo cáo
     dailyReport.revenue.total += order.total;
     dailyReport.revenue[method] = (dailyReport.revenue[method] || 0) + order.total;
@@ -1733,6 +1707,28 @@ function requestNotificationPermission() {
     Notification.requestPermission();
   }
 }
+
+// Khôi phục session khi load trang
+(async function() {
+  const savedUser = localStorage.getItem('pizza_current_user');
+  const savedStore = localStorage.getItem('pizza_current_store');
+
+  if (savedUser && savedStore) {
+    currentUser = savedUser;
+    currentStore = savedStore;
+    
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('storeBadge').textContent = savedStore;
+    document.getElementById('userDisplay').textContent = `User: ${savedUser}`;
+    
+    requestNotificationPermission();
+    await loadData();
+    renderMenu();
+    toggleTableSelect();
+    updateReports();
+  }
+})();
   </script>
 </body>
 </html>
