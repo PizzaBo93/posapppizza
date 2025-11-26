@@ -905,16 +905,43 @@ function renderCurrentOrders() {
     return;
   }
 
-  let html = '';
+  const mergedItems = {};
   let grandTotal = 0;
-
+  const allNotes = [];
+  
   currentOrders.forEach(order => {
-    let itemsHtml = '';
     Object.keys(order.items).forEach(itemId => {
+      mergedItems[itemId] = (mergedItems[itemId] || 0) + order.items[itemId];
+    });
+
+    grandTotal += order.total;
+
+    if (order.note) {
+      const timeStr = order.created_at
+        ? new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+        : '--:--';
+      allNotes.push(`[${timeStr}] ${order.note}`);
+    }
+  });
+
+  let notesHtml = '';
+  if (allNotes.length > 0) {
+    notesHtml = `
+      <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px;">
+        <strong>📝 Ghi chú:</strong><br>
+        ${allNotes.reverse().join('<br>')}
+      </div>
+    `;
+  }
+
+  let itemsHtml = '';
+  Object.keys(mergedItems)
+    .sort((a, b) => findItemById(a).name.localeCompare(findItemById(b).name))
+    .forEach(itemId => {
       const item = findItemById(itemId);
       if (!item) return;
       
-      const qty = order.items[itemId];
+      const qty = mergedItems[itemId];
       const subtotal = item.price * qty;
 
       itemsHtml += `
@@ -925,35 +952,19 @@ function renderCurrentOrders() {
       `;
     });
 
-    grandTotal += order.total;
-
-    html += `
-      <div class="current-order-card">
-        <div style="margin-bottom: 10px; color: #999; font-size: 13px;">
-          ${new Date(order.created_at).toLocaleTimeString('vi-VN')}
-        </div>
-        ${order.note ? `<div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 14px;">📝 ${order.note}</div>` : ''}
-        ${itemsHtml}
-        <div class="order-total">
-          <span>Tổng:</span>
-          <span>${formatMoney(order.total)}</span>
-        </div>
+  const html = `
+    <div class="current-order-card">
+      <div style="margin-bottom: 10px; color: #999; font-size: 13px;">
+        📋 Tổng hợp đơn hàng (${currentOrders.length} lần đặt)
       </div>
-    `;
-  });
-
-  if (currentOrders.length > 1) {
-    html += `
-      <div class="current-order-card" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white;">
-        <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 700;">
-          <span>TỔNG CỘNG:</span>
-          <span>${formatMoney(grandTotal)}</span>
-        </div>
+      ${notesHtml}
+      ${itemsHtml}
+      <div class="order-total">
+        <span>TỔNG CỘNG:</span>
+        <span>${formatMoney(grandTotal)}</span>
       </div>
-    `;
-  }
+    </div>
 
-  html += `
     <div style="background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: center; font-size: 14px; border: 1px solid #bee5eb;">
       ℹ️ Vui lòng thanh toán với nhân viên khi nhận món
     </div>
