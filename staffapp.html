@@ -679,57 +679,63 @@ select:hover {
     </div>
 
     <!-- Tab 1: New Order -->
-    <div class="tab-content active" id="tab1">
-      <div class="order-form">
-        <h2>Tạo Đơn Hàng Mới</h2>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Loại đơn hàng</label>
-            <select id="orderType" onchange="toggleTableSelect()">
-              <option value="dine">Ăn tại quán</option>
-              <option value="takeout">Mang về</option>
-              <option value="grab">Grab</option>
-              <option value="shopee">Shopee</option>
-            </select>
-            <div class="table-select" id="tableSelect">
-              <label style="margin-top: 10px;">Chọn bàn</label>
-              <select id="tableNumber">
-                <option value="1">Bàn 1</option>
-                <option value="2">Bàn 2</option>
-                <option value="3">Bàn 3</option>
-                <option value="4">Bàn 4</option>
-                <option value="5">Bàn 5</option>
-                <option value="6">Bàn 6</option>
-                <option value="7">Bàn 7</option>
-                <option value="8">Bàn 8</option>
-                <option value="9">Bàn 9</option>
-                <option value="10">Bàn 10</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Ghi chú</label>
-            <input type="text" id="orderNote" placeholder="Ghi chú đơn hàng">
-          </div>
-        </div>
-
-        <h3>Chọn món</h3>
+<div class="tab-content active" id="tab1">
+  <div class="order-form">
+    <!-- Phần thông tin đơn hàng - thu gọn -->
+    <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      <h3 style="margin-bottom: 15px; color: #555;">📋 Thông tin đơn hàng</h3>
+      <div class="form-row">
         <div class="form-group">
-          <input type="text" id="searchMenu" placeholder="🔍 Tìm kiếm món..." oninput="searchMenu()">
-        </div>
-        <div id="menuCategories"></div>
-
-        <div class="order-summary">
-          <div id="orderSummaryItems"></div>
-          <div class="summary-row total-row">
-            <span>TỔNG CỘNG:</span>
-            <span id="totalAmount">0đ</span>
+          <label>Loại đơn hàng</label>
+          <select id="orderType" onchange="toggleTableSelect()">
+            <option value="dine">Ăn tại quán</option>
+            <option value="takeout">Mang về</option>
+            <option value="grab">Grab</option>
+            <option value="shopee">Shopee</option>
+          </select>
+          <div class="table-select" id="tableSelect">
+            <label style="margin-top: 10px;">Chọn bàn</label>
+            <select id="tableNumber">
+              <option value="1">Bàn 1</option>
+              <option value="2">Bàn 2</option>
+              <option value="3">Bàn 3</option>
+              <option value="4">Bàn 4</option>
+              <option value="5">Bàn 5</option>
+              <option value="6">Bàn 6</option>
+              <option value="7">Bàn 7</option>
+              <option value="8">Bàn 8</option>
+              <option value="9">Bàn 9</option>
+              <option value="10">Bàn 10</option>
+            </select>
           </div>
         </div>
-
-        <button class="submit-btn" onclick="createOrder()">Tạo Đơn Hàng</button>
+        <div class="form-group">
+          <label>Ghi chú</label>
+          <input type="text" id="orderNote" placeholder="Ghi chú đơn hàng">
+        </div>
       </div>
     </div>
+
+    <!-- Phần chọn món - nổi bật -->
+    <div style="background: white; padding: 25px; border-radius: 12px; border: 3px solid #e74c3c; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);">
+      <h2 style="margin-bottom: 20px; color: #e74c3c; font-size: 24px;">🍕 CHỌN MÓN</h2>
+      <div class="form-group">
+        <input type="text" id="searchMenu" placeholder="🔍 Tìm kiếm món..." oninput="searchMenu()" style="border: 2px solid #e74c3c; font-size: 16px;">
+      </div>
+      <div id="menuCategories"></div>
+    </div>
+
+    <div class="order-summary" style="margin-top: 20px;">
+      <div id="orderSummaryItems"></div>
+      <div class="summary-row total-row">
+        <span>TỔNG CỘNG:</span>
+        <span id="totalAmount">0đ</span>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="createOrder()">Tạo Đơn Hàng</button>
+  </div>
+</div>
 
     <!-- Tab 2: Current Orders -->
     <div class="tab-content" id="tab2">
@@ -886,7 +892,13 @@ select:hover {
             { id: 'c7', name: 'Combo 7 (1 Pizza size S bất kỳ + 1 nước ngọt)', price: 45000 },
 
             { id: 'c8', name: 'Combo 8 (1 Pizza size S bất kỳ + 1 khoai tây chiên + 1 nước ngọt)', price: 59000 }
-            ]
+            ],
+
+            'Add - on': [
+            { id: 'a1', name: 'Phô mai thêm S', price: 10000 },
+            { id: 'a2', name: 'Phô mai thêm L', price: 20000 },
+            { id: 'a3', name: 'Bò thêm', price: 10000 },
+    ]
     };
 
     // Thêm vào đầu phần <script>, sau khai báo menuData
@@ -1010,8 +1022,7 @@ localStorage.removeItem('pizza_current_store');
         </div>
         <div class="quantity-control">
           <button class="qty-btn" onclick="updateCart('${item.id}', -1)">-</button>
-          <span style="min-width: 30px; text-align: center; font-weight: 600;">${cart[item.id] || 0}</span>
-          <button class="qty-btn" onclick="updateCart('${item.id}', 1)">+</button>
+          <span style="min-width: 30px; text-align: center; font-weight: 600;" data-item-id="${item.id}">${cart[item.id] || 0}</span>          <button class="qty-btn" onclick="updateCart('${item.id}', 1)">+</button>
         </div>
       </div>
     `).join('');
@@ -1031,30 +1042,23 @@ localStorage.removeItem('pizza_current_store');
     `;
   }).join('');
 }
-    function updateCart(itemId, change) {
-      if (!cart[itemId]) cart[itemId] = 0;
-      cart[itemId] += change;
-      if (cart[itemId] <= 0) delete cart[itemId];
-      
-      // Chỉ cập nhật số lượng trong category đang mở, không đóng category
-      const item = findItemById(itemId);
-      if (item) {
-        // Tìm category chứa item này
-        for (const category in menuData) {
-          const foundItem = menuData[category].find(i => i.id === itemId);
-          if (foundItem) {
-            // Chỉ render lại items trong category này
-            const categoryItems = document.getElementById(`items-${category}`);
-            if (categoryItems && categoryItems.classList.contains('show')) {
-              renderCategoryItems(category);
-            }
-            break;
-          }
-        }
-      }
-      
-      updateOrderSummary();
-    }
+ function updateCart(itemId, change) {
+  if (!cart[itemId]) cart[itemId] = 0;
+  cart[itemId] += change;
+  if (cart[itemId] <= 0) delete cart[itemId];
+  
+  // Chỉ cập nhật số lượng hiển thị, không render lại
+  updateQuantityDisplay(itemId);
+  updateOrderSummary();
+}
+
+function updateQuantityDisplay(itemId) {
+  // Tìm tất cả các phần tử hiển thị số lượng của món này
+  const quantityElements = document.querySelectorAll(`[data-item-id="${itemId}"]`);
+  quantityElements.forEach(el => {
+    el.textContent = cart[itemId] || 0;
+  });
+}
 
     function renderCategoryItems(category) {
       const container = document.getElementById(`items-${category}`);
@@ -1068,7 +1072,7 @@ localStorage.removeItem('pizza_current_store');
           </div>
           <div class="quantity-control">
             <button class="qty-btn" onclick="updateCart('${item.id}', -1)">-</button>
-            <span style="min-width: 30px; text-align: center; font-weight: 600;">${cart[item.id] || 0}</span>
+           <span style="min-width: 30px; text-align: center; font-weight: 600;" data-item-id="${item.id}">${cart[item.id] || 0}</span>
             <button class="qty-btn" onclick="updateCart('${item.id}', 1)">+</button>
           </div>
         </div>
