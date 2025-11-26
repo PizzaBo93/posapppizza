@@ -1072,6 +1072,69 @@ localStorage.removeItem('pizza_current_store');
   const orderType = document.getElementById('orderType').value;
   const tableNumber = document.getElementById('tableNumber').value;
 
+  // THÊM MỚI: Kiểm tra xem bàn này đã có đơn chờ chưa
+  if (orderType === 'dine') {
+    const existingOrder = orders.find(o => 
+      o.order_type === 'dine' && 
+      o.table_number == tableNumber && 
+      o.status === 'pending'
+    );
+
+    if (existingOrder) {
+      // Gộp món vào đơn hiện tại
+      Object.keys(cart).forEach(itemId => {
+        if (existingOrder.items[itemId]) {
+          existingOrder.items[itemId] += cart[itemId];
+        } else {
+          existingOrder.items[itemId] = cart[itemId];
+        }
+      });
+
+      // Tính lại tổng tiền
+      existingOrder.total = Object.keys(existingOrder.items).reduce((sum, id) => {
+        const item = findItemById(id);
+        return sum + (item.price * existingOrder.items[id]);
+      }, 0);
+
+      // Thêm ghi chú mới (nếu có)
+      const newNote = document.getElementById('orderNote').value;
+      if (newNote) {
+        existingOrder.note = existingOrder.note 
+          ? `${existingOrder.note} | ${newNote}` 
+          : newNote;
+      }
+
+      try {
+        // Cập nhật vào Supabase
+        const { error } = await supabase
+          .from('orders')
+          .update({ 
+            items: existingOrder.items,
+            total: existingOrder.total,
+            note: existingOrder.note,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingOrder.id);
+
+        if (error) throw error;
+
+        cart = {};
+        document.getElementById('orderNote').value = '';
+        renderMenu();
+        updateOrderSummary();
+        await saveData();
+        alert(`Đã thêm món vào Bàn ${tableNumber}!`);
+        switchTab(1);
+
+      } catch (error) {
+        console.error('Lỗi thêm món:', error);
+        alert('Có lỗi khi thêm món. Vui lòng thử lại!');
+      }
+      return; // Dừng hàm, không tạo đơn mới
+    }
+  }
+
+  // Code cũ tiếp tục (tạo đơn mới nếu chưa có đơn)
   const order = {
     id: Date.now(),
     store_code: currentStore,
@@ -1089,7 +1152,6 @@ localStorage.removeItem('pizza_current_store');
   };
 
   try {
-    // Lưu vào Supabase
     const { error } = await supabase
       .from('orders')
       .insert([order]);
@@ -1110,7 +1172,7 @@ localStorage.removeItem('pizza_current_store');
     alert('Có lỗi khi tạo đơn hàng. Vui lòng thử lại!');
   }
 }
-
+    
     function renderOrders() {
   const grid = document.getElementById('ordersGrid');
   
