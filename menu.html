@@ -1138,6 +1138,8 @@ function subscribeToOrders() {
       }, 
       (payload) => {
         console.log('🔔 Order changed:', payload);
+        console.log('Event type:', payload.eventType);
+        console.log('New data:', payload.new);
         
         // ⭐ Reload đơn hàng khi có thay đổi (cả INSERT và UPDATE)
         loadCurrentOrders();
@@ -1146,18 +1148,25 @@ function subscribeToOrders() {
         const currentTab = document.querySelector('.tab.active');
         const tabIndex = Array.from(document.querySelectorAll('.tab')).indexOf(currentTab);
         
-        if (payload.eventType === 'UPDATE' && tabIndex === 0) {
-          // Tạo thông báo nhẹ nhàng thay vì alert
-          showUpdateNotification('📝 Nhân viên đã cập nhật đơn hàng của bạn!');
+        if (payload.eventType === 'UPDATE') {
+          console.log('📝 Đơn hàng được cập nhật!');
+          if (tabIndex === 0) {
+            showUpdateNotification('📝 Nhân viên đã cập nhật đơn hàng của bạn!');
+          }
         }
         
-        if (payload.eventType === 'INSERT' && tabIndex === 0) {
-          showUpdateNotification('✅ Đơn hàng mới đã được tạo!');
+        if (payload.eventType === 'INSERT') {
+          console.log('✅ Đơn hàng mới!');
+          if (tabIndex === 0) {
+            showUpdateNotification('✅ Đơn hàng mới đã được tạo!');
+          }
         }
       }
     )
-    .subscribe();
-
+    .subscribe((status) => {
+      console.log('📡 Subscription status:', status);
+    });
+    
   // ⭐ THÊM MỚI - Lắng nghe thay đổi session
   supabase
     .channel('customer-session')
