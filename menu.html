@@ -950,22 +950,35 @@ function renderCurrentOrders() {
 }
 
 function subscribeToOrders() {
-  // Channel cho orders
+  // Channel cho orders - lắng nghe cả INSERT và UPDATE
   supabase
     .channel('customer-orders')
     .on('postgres_changes', 
       { 
-        event: '*', 
+        event: '*',  // Lắng nghe tất cả: INSERT, UPDATE, DELETE
         schema: 'public', 
         table: 'orders',
         filter: `table_number=eq.${tableNumber}`
       }, 
       (payload) => {
+        console.log('🔔 Order changed:', payload);
+        
+        // Reload đơn hàng khi có thay đổi
         loadCurrentOrders();
+        
+        // Nếu là UPDATE và đang ở tab Menu → hiện thông báo
+        if (payload.eventType === 'UPDATE') {
+          const currentTab = document.querySelector('.tab.active');
+          const tabIndex = Array.from(document.querySelectorAll('.tab')).indexOf(currentTab);
+          
+          if (tabIndex === 0) {  // Đang ở tab Menu
+            alert('📝 Nhân viên đã cập nhật đơn hàng của bạn!');
+          }
+        }
       }
     )
     .subscribe();
-
+  
   // ⭐ THÊM MỚI - Lắng nghe thay đổi session
   supabase
     .channel('customer-session')
