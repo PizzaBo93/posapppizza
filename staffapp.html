@@ -1258,7 +1258,7 @@ if (order.order_source === 'qr') {
       .from('qr_sessions')
       .update({ status: 'closed' })
       .eq('store_code', order.store_code)
-      .eq('table_number', order.table_number)
+      .eq('table_number', String(order.table_number))
       .eq('status', 'active');
     
     if (error) {
