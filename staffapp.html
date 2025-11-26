@@ -1204,12 +1204,7 @@ localStorage.removeItem('pizza_current_store');
             <button class="edit-order-btn" onclick="enableEditMode('${order.id}')">✏️ Sửa đơn</button>
             <button class="payment-btn" style="background: #9b59b6; color: white; flex: 1;" onclick="showBillPreview(${order.id})">👁️ Xem hóa đơn</button>
           </div>
-          <div class="payment-buttons">
-            <button class="payment-btn pay-cash" onclick="payOrder(${order.id}, 'cash')">💵 Tiền mặt</button>
-            <button class="payment-btn pay-transfer" onclick="payOrder(${order.id}, 'transfer')">🏦 Chuyển khoản</button>
-            <button class="payment-btn" style="background: #00b14f; color: white;" onclick="payOrder(${order.id}, 'grab')">🛵 Grab</button>
-            <button class="payment-btn" style="background: #ee4d2d; color: white;" onclick="payOrder(${order.id}, 'shopee')">🛒 Shopee</button>
-          </div>
+          
         `}
       </div>
     `;
