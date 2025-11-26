@@ -1158,18 +1158,27 @@ function updateQuantityDisplay(itemId) {
       }
 
       try {
-        // ⭐ CẬP NHẬT VÀO SUPABASE - Real-time sẽ tự đồng bộ sang khách
-        const { error } = await supabase
-          .from('orders')
-          .update({ 
-            items: existingOrder.items,
-            total: existingOrder.total,
-            note: existingOrder.note,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingOrder.id);
+  // ⭐ CẬP NHẬT VÀO SUPABASE - Real-time sẽ tự đồng bộ sang khách
+  const updateData = {
+    items: existingOrder.items,
+    total: existingOrder.total,
+    note: existingOrder.note,
+    updated_at: new Date().toISOString()
+  };
+  
+  console.log('🔄 Updating order:', existingOrder.id, updateData);
+  
+  const { error } = await supabase
+    .from('orders')
+    .update(updateData)
+    .eq('id', existingOrder.id);
 
-        if (error) throw error;
+  if (error) {
+    console.error('❌ Update error:', error);
+    throw error;
+  }
+  
+  console.log('✅ Order updated successfully');
         
         // ⭐ CẬP NHẬT LOCAL STATE
         const orderIndex = orders.findIndex(o => o.id === existingOrder.id);
@@ -1182,13 +1191,15 @@ function updateQuantityDisplay(itemId) {
         renderMenu();
         updateOrderSummary();
         await saveData();
-        alert(`Đã thêm món vào Bàn ${tableNumber}!`);
+
+        console.log('🎉 Đã thêm món vào Bàn', tableNumber);
+        alert(`✅ Đã thêm món vào Bàn ${tableNumber}!`);
         switchTab(1);
 
       } catch (error) {
-        console.error('Lỗi thêm món:', error);
-        alert('Có lỗi khi thêm món. Vui lòng thử lại!');
-      }
+          console.error('🔥 Lỗi thêm món:', error);
+          alert('❌ Có lỗi khi thêm món. Vui lòng thử lại!\n\nChi tiết: ' + error.message);
+        }
       return;
     }
   }
