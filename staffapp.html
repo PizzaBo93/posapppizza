@@ -1237,36 +1237,39 @@
 
     if (error) throw error;
 
-    // ⭐⭐⭐ THÊM ĐOẠN NÀY VÀO ĐÂY ⭐⭐⭐
     // Vô hiệu hóa session khi thanh toán
-    if (order.session_token) {
-      const { error: sessionError } = await supabase
-        .from('qr_sessions')
-        .update({ status: 'closed' })
-        .eq('token', order.session_token);
-
-      if (sessionError) {
-        console.warn('⚠️ Không thể đóng session:', sessionError);
-      } else {
-        console.log('✅ Đã đóng session:', order.session_token);
-      }
+if (order.order_source === 'qr') {
+  let sessionError = null;
+  
+  // Thử đóng theo token trước
+  if (order.session_token) {
+    const { error } = await supabase
+      .from('qr_sessions')
+      .update({ status: 'closed' })
+      .eq('token', order.session_token)
+      .eq('status', 'active'); // CHỈ đóng nếu đang active
+    
+    sessionError = error;
+  } 
+  
+  // Nếu không có token hoặc update thất bại → Đóng theo bàn
+  if (!order.session_token || sessionError) {
+    const { error } = await supabase
+      .from('qr_sessions')
+      .update({ status: 'closed' })
+      .eq('store_code', order.store_code)
+      .eq('table_number', order.table_number)
+      .eq('status', 'active');
+    
+    if (error) {
+      console.error('⚠️ Không thể đóng session:', error);
+    } else {
+      console.log(`✅ Đã đóng session bàn ${order.table_number}`);
     }
-    // Hoặc nếu order KHÔNG có session_token, đóng theo bàn
-    else if (order.order_type === 'dine' && order.table_number) {
-      const { error: sessionError } = await supabase
-        .from('qr_sessions')
-        .update({ status: 'closed' })
-        .eq('store_code', order.store_code)
-        .eq('table_number', order.table_number)
-        .eq('status', 'active');
-
-      if (sessionError) {
-        console.warn('⚠️ Không thể đóng session theo bàn:', sessionError);
-      } else {
-        console.log(`✅ Đã đóng session bàn ${order.table_number}`);
-      }
-    }
-
+  } else {
+    console.log('✅ Đã đóng session token:', order.session_token);
+  }
+}
     // Cập nhật báo cáo
     dailyReport.revenue.total += order.total;
     dailyReport.revenue[method] = (dailyReport.revenue[method] || 0) + order.total;
