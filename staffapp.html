@@ -1063,7 +1063,7 @@ localStorage.removeItem('pizza_current_store');
       totalAmount.textContent = formatMoney(total);
     }
 
-    async function createOrder() {
+   async function createOrder() {
   if (Object.keys(cart).length === 0) {
     alert('Vui lòng chọn món!');
     return;
@@ -1072,7 +1072,7 @@ localStorage.removeItem('pizza_current_store');
   const orderType = document.getElementById('orderType').value;
   const tableNumber = document.getElementById('tableNumber').value;
 
-  // THÊM MỚI: Kiểm tra xem bàn này đã có đơn chờ chưa
+  // Kiểm tra xem bàn này đã có đơn chờ chưa
   if (orderType === 'dine') {
     const existingOrder = orders.find(o => 
       o.order_type === 'dine' && 
@@ -1130,11 +1130,11 @@ localStorage.removeItem('pizza_current_store');
         console.error('Lỗi thêm món:', error);
         alert('Có lỗi khi thêm món. Vui lòng thử lại!');
       }
-      return; // Dừng hàm, không tạo đơn mới
+      return;
     }
   }
 
-  // Code cũ tiếp tục (tạo đơn mới nếu chưa có đơn)
+  // Tạo đơn mới nếu chưa có đơn
   const order = {
     id: Date.now(),
     store_code: currentStore,
