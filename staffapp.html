@@ -244,31 +244,38 @@
 
     .order-card {
       background: white;
-      padding: 20px;
+      padding: 24px;
       border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e8e8e8;
+      transition: box-shadow 0.3s;
+    }
+
+    .order-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
 
     .order-header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 15px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #f0f0f0;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e8e8e8;
     }
 
     .order-type {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 4px;
-      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
       font-weight: 600;
+      background: #f5f5f5;
+      color: #333;
     }
 
-    .type-dine { background: #3498db; color: white; }
-    .type-takeout { background: #2ecc71; color: white; }
-    .type-grab { background: #00b14f; color: white; }
-    .type-shopee { background: #ee4d2d; color: white; }
 
     .table-select {
       margin-top: 10px;
