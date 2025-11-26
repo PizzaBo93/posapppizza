@@ -1072,46 +1072,40 @@ localStorage.removeItem('pizza_current_store');
   const orderType = document.getElementById('orderType').value;
   const tableNumber = document.getElementById('tableNumber').value;
 
-  // ⭐ KIỂM TRA XEM BÀN NÀY ĐÃ CÓ ĐƠN PENDING CHƯA (bao gồm cả đơn QR)
+  // Kiểm tra xem bàn này đã có đơn chờ chưa
   if (orderType === 'dine') {
-    try {
-      const { data: existingOrders, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('store_code', currentStore)
-        .eq('table_number', tableNumber)
-        .eq('status', 'pending')
-        .limit(1);
+    const existingOrder = orders.find(o => 
+      o.order_type === 'dine' && 
+      o.table_number == tableNumber && 
+      o.status === 'pending'
+    );
 
-      if (fetchError) throw fetchError;
-
-      if (existingOrders && existingOrders.length > 0) {
-        // ⭐ ĐÃ CÓ ĐƠN → GỘP MÓN VÀO
-        const existingOrder = existingOrders[0];
-
-        Object.keys(cart).forEach(itemId => {
-          if (existingOrder.items[itemId]) {
-            existingOrder.items[itemId] += cart[itemId];
-          } else {
-            existingOrder.items[itemId] = cart[itemId];
-          }
-        });
-
-        // Tính lại tổng tiền
-        existingOrder.total = Object.keys(existingOrder.items).reduce((sum, id) => {
-          const item = findItemById(id);
-          return sum + (item.price * existingOrder.items[id]);
-        }, 0);
-
-        // Thêm ghi chú mới
-        const newNote = document.getElementById('orderNote').value;
-        if (newNote) {
-          existingOrder.note = existingOrder.note 
-            ? `${existingOrder.note} | ${newNote}` 
-            : newNote;
+    if (existingOrder) {
+      // Gộp món vào đơn hiện tại
+      Object.keys(cart).forEach(itemId => {
+        if (existingOrder.items[itemId]) {
+          existingOrder.items[itemId] += cart[itemId];
+        } else {
+          existingOrder.items[itemId] = cart[itemId];
         }
+      });
 
-        // Cập nhật đơn
+      // Tính lại tổng tiền
+      existingOrder.total = Object.keys(existingOrder.items).reduce((sum, id) => {
+        const item = findItemById(id);
+        return sum + (item.price * existingOrder.items[id]);
+      }, 0);
+
+      // Thêm ghi chú mới (nếu có)
+      const newNote = document.getElementById('orderNote').value;
+      if (newNote) {
+        existingOrder.note = existingOrder.note 
+          ? `${existingOrder.note} | ${newNote}` 
+          : newNote;
+      }
+
+      try {
+        // Cập nhật vào Supabase
         const { error } = await supabase
           .from('orders')
           .update({ 
@@ -1124,36 +1118,28 @@ localStorage.removeItem('pizza_current_store');
 
         if (error) throw error;
 
-        // Cập nhật local orders
-        const localIndex = orders.findIndex(o => o.id === existingOrder.id);
-        if (localIndex !== -1) {
-          orders[localIndex] = existingOrder;
-        } else {
-          orders.unshift(existingOrder);
-        }
-
         cart = {};
         document.getElementById('orderNote').value = '';
         renderMenu();
         updateOrderSummary();
-        renderOrders();
-        
-        alert(`✅ Đã thêm món vào Bàn ${tableNumber}!`);
+        await saveData();
+        alert(`Đã thêm món vào Bàn ${tableNumber}!`);
         switchTab(1);
-        return;
+
+      } catch (error) {
+        console.error('Lỗi thêm món:', error);
+        alert('Có lỗi khi thêm món. Vui lòng thử lại!');
       }
-    } catch (error) {
-      console.error('Lỗi kiểm tra đơn:', error);
+      return;
     }
   }
 
-  // ⭐ CHƯA CÓ ĐƠN → TẠO MỚI
+  // Tạo đơn mới nếu chưa có đơn
   const order = {
     id: Date.now(),
     store_code: currentStore,
     user_id: currentUser,
     order_type: orderType,
-    order_source: 'staff',
     table_number: orderType === 'dine' ? tableNumber : null,
     note: document.getElementById('orderNote').value,
     items: {...cart},
@@ -1172,22 +1158,21 @@ localStorage.removeItem('pizza_current_store');
 
     if (error) throw error;
 
-    orders.unshift(order);
+    orders.push(order);
     cart = {};
     document.getElementById('orderNote').value = '';
     renderMenu();
     updateOrderSummary();
-    renderOrders();
-    
-    alert('✅ Đơn hàng đã được tạo!');
+    renderOrders(); 
+    alert('Đơn hàng đã được tạo!');
     switchTab(1);
 
   } catch (error) {
     console.error('Lỗi tạo đơn hàng:', error);
-    alert('❌ Có lỗi khi tạo đơn hàng. Vui lòng thử lại!');
+    alert('Có lỗi khi tạo đơn hàng. Vui lòng thử lại!');
   }
 }
-
+    
     function renderOrders() {
   const grid = document.getElementById('ordersGrid');
   
@@ -1305,7 +1290,6 @@ localStorage.removeItem('pizza_current_store');
   }
 
   try {
-    // Thanh toán đơn
     const { error } = await supabase
       .from('orders')
       .update({ 
@@ -1316,26 +1300,15 @@ localStorage.removeItem('pizza_current_store');
 
     if (error) throw error;
 
-    // ⭐ NẾU LÀ ĐƠN QR → ĐÓNG SESSION
-    if (order.order_source === 'qr' && order.session_token) {
-      const { error: sessionError } = await supabase
-        .from('qr_sessions')
-        .update({ status: 'closed' })
-        .eq('token', order.session_token);
-      
-      if (sessionError) {
-        console.error('Lỗi đóng session:', sessionError);
-      } else {
-        console.log('✅ Đã đóng QR session');
-      }
-    }
-
+    
     // Cập nhật báo cáo
     dailyReport.revenue.total += order.total;
     dailyReport.revenue[method] = (dailyReport.revenue[method] || 0) + order.total;
     
+    // CHỈ CẬP NHẬT KÉT TIỀN KHI THANH TOÁN BẰNG TIỀN MẶT
     if (method === 'cash') {
-      dailyReport.cash.collected = (dailyReport.cash.collected || 0) + order.total;
+      dailyReport.cash.collected += order.total;
+
     }
 
     Object.keys(order.items).forEach(itemId => {
@@ -1352,15 +1325,13 @@ localStorage.removeItem('pizza_current_store');
     await saveData();
     renderOrders();
     updateReports();
-    
-    alert('✅ Đã thanh toán thành công!');
+    alert('Đã thanh toán thành công!');
 
   } catch (error) {
     console.error('Lỗi thanh toán:', error);
-    alert('❌ Có lỗi khi thanh toán. Vui lòng thử lại!');
+    alert('Có lỗi khi thanh toán. Vui lòng thử lại!');
   }
 }
-
 
 function toggleReportSection(section) {
   const items = document.getElementById(`items-${section}`);
@@ -1612,17 +1583,6 @@ async function saveOrderEdit(orderId) {
   const order = orders.find(o => o.id == orderId);
   if (!order) return;
   
-  // Kiểm tra nếu không còn món nào
-  if (Object.keys(order.items).length === 0) {
-    if (confirm('Đơn hàng không còn món nào. Xóa đơn hàng?')) {
-      await deleteOrder(orderId);
-      return;
-    } else {
-      cancelOrderEdit(orderId);
-      return;
-    }
-  }
-  
   // Tính lại tổng tiền
   order.total = Object.keys(order.items).reduce((sum, itemId) => {
     const item = findItemById(itemId);
@@ -1634,7 +1594,7 @@ async function saveOrderEdit(orderId) {
   orderBackup = null;
   
   try {
-    // ⭐ Cập nhật vào Supabase (sẽ trigger real-time update cho khách)
+    // Cập nhật vào Supabase
     const { error } = await supabase
       .from('orders')
       .update({ 
@@ -1648,11 +1608,11 @@ async function saveOrderEdit(orderId) {
     
     await saveData();
     renderOrders();
-    alert('✅ Đã lưu thay đổi!');
+    alert('Đã lưu thay đổi!');
     
   } catch (error) {
     console.error('Lỗi lưu thay đổi:', error);
-    alert('❌ Có lỗi khi lưu. Vui lòng thử lại!');
+    alert('Có lỗi khi lưu. Vui lòng thử lại!');
   }
 }
 
@@ -1675,7 +1635,6 @@ function updateOrderItem(orderId, itemId, change) {
     return sum + (item.price * order.items[id]);
   }, 0);
   
-  // ⭐ Render ngay lập tức (không cần save vào DB vì chưa nhấn Lưu)
   renderOrders();
 }
 
@@ -1690,9 +1649,12 @@ function deleteOrderItem(orderId, itemId) {
   
   delete order.items[itemId];
   
-  // Nếu không còn món nào
+  // Nếu không còn món nào, xóa luôn đơn hàng
   if (Object.keys(order.items).length === 0) {
-    alert('⚠️ Đơn hàng không còn món nào. Vui lòng nhấn Lưu để xóa đơn hoặc Hủy để giữ lại.');
+    if (confirm('Đơn hàng không còn món nào. Xóa luôn đơn hàng?')) {
+      deleteOrder(orderId);
+      return;
+    }
   }
   
   // Tính lại tổng
@@ -1729,68 +1691,45 @@ async function deleteOrder(orderId) {
 let ordersSubscription = null;
 
 function subscribeToOrders() {
+  // Hủy subscription cũ nếu có
   if (ordersSubscription) {
     supabase.removeChannel(ordersSubscription);
   }
 
-  // ⭐ Lắng nghe TẤT CẢ THAY ĐỔI (INSERT, UPDATE, DELETE)
+  // Tạo subscription mới
   ordersSubscription = supabase
     .channel('staff-orders')
     .on('postgres_changes', 
       { 
-        event: '*',  // INSERT, UPDATE, DELETE
+        event: 'INSERT', 
         schema: 'public', 
         table: 'orders',
         filter: `store_code=eq.${currentStore}`
       }, 
       (payload) => {
-        console.log('🔔 Order changed:', payload);
+        console.log('📱 Đơn hàng mới:', payload.new);
         
-        if (payload.eventType === 'INSERT') {
-          // Thêm đơn mới
-          const newOrder = payload.new;
-          const existingIndex = orders.findIndex(o => o.id === newOrder.id);
-          if (existingIndex === -1) {
-            orders.unshift(newOrder);
-            
-            if (newOrder.order_source === 'qr') {
-              showNotification(`🔔 Đơn QR mới - Bàn ${newOrder.table_number}`, newOrder);
-            }
-          }
-        } 
-        else if (payload.eventType === 'UPDATE') {
-          // Cập nhật đơn hiện tại
-          const updatedOrder = payload.new;
-          const index = orders.findIndex(o => o.id === updatedOrder.id);
-          
-          if (index !== -1) {
-            // Giữ editMode nếu đang sửa
-            const wasEditing = orders[index].editMode;
-            orders[index] = updatedOrder;
-            orders[index].editMode = wasEditing;
-          } else {
-            // Đơn mới từ nguồn khác
-            orders.unshift(updatedOrder);
-          }
-        }
-        else if (payload.eventType === 'DELETE') {
-          // Xóa đơn
-          orders = orders.filter(o => o.id !== payload.old.id);
+        // Thêm đơn mới vào danh sách
+        orders.unshift(payload.new);
+        
+        // Hiện thông báo nếu là đơn QR
+        if (payload.new.order_source === 'qr') {
+          showNotification(`🔔 Đơn QR mới - Bàn ${payload.new.table_number}`, payload.new);
         }
         
-        // Render lại nếu đang ở tab Đơn Hiện Tại
+        // Tự động render lại nếu đang ở tab Đơn Hiện Tại
         const currentTab = document.querySelector('.tab.active');
         const tabIndex = Array.from(document.querySelectorAll('.tab')).indexOf(currentTab);
         if (tabIndex === 1) {
           renderOrders();
         }
         
+        // Cập nhật badge số đơn chưa xử lý (optional)
         updateOrderBadge();
       }
     )
     .subscribe();
 }
-
 
 // Hiện thông báo đơn mới
 function showNotification(message, order) {
