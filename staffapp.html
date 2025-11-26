@@ -601,6 +601,130 @@
   font-weight: 600;
   margin-left: 8px;
 }
+
+/* Popup thanh toán */
+.payment-popup {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.payment-popup-content {
+  background-color: white;
+  margin: 20% auto;
+  padding: 0;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.payment-popup-header {
+  background: #e74c3c;
+  color: white;
+  padding: 20px;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payment-popup-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.payment-popup-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  width: auto;
+  padding: 0;
+  line-height: 1;
+}
+
+.payment-popup-body {
+  padding: 25px;
+}
+
+.payment-method-btn {
+  width: 100%;
+  padding: 18px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  color: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.payment-method-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.payment-method-btn:active {
+  transform: translateY(0);
+}
+
+.payment-method-btn.cash {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+}
+
+.payment-method-btn.transfer {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.payment-method-btn.grab {
+  background: linear-gradient(135deg, #00b14f 0%, #009640 100%);
+}
+
+.payment-method-btn.shopee {
+  background: linear-gradient(135deg, #ee4d2d 0%, #d63e1e 100%);
+}
+
+.quick-pay-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  width: 100%;
+  margin-top: 10px;
+  transition: background 0.3s;
+}
+
+.quick-pay-btn:hover {
+  background: #229954;
+}
     }
   </style>
 </head>
@@ -1342,15 +1466,16 @@ localStorage.removeItem('pizza_current_store');
         </div>
         
         ${isEditMode ? `
-          <button class="payment-btn" style="background: #27ae60; color: white; margin-top: 15px;" onclick="saveOrderEdit('${order.id}')">✅ Lưu thay đổi</button>
-          <button class="payment-btn" style="background: #95a5a6; color: white; margin-top: 10px;" onclick="cancelOrderEdit('${order.id}')">❌ Hủy</button>
-        ` : `
-          <div class="payment-buttons" style="margin-top: 15px;">
-            <button class="edit-order-btn" onclick="enableEditMode('${order.id}')">✏️ Sửa đơn</button>
-            <button class="payment-btn" style="background: #9b59b6; color: white; flex: 1;" onclick="showBillPreview(${order.id})">👁️ Xem hóa đơn</button>
-          </div>
-          
-        `}
+  <button class="payment-btn" style="background: #27ae60; color: white; margin-top: 15px;" onclick="saveOrderEdit('${order.id}')">✅ Lưu thay đổi</button>
+  <button class="payment-btn" style="background: #95a5a6; color: white; margin-top: 10px;" onclick="cancelOrderEdit('${order.id}')">❌ Hủy</button>
+` : `
+  <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px; margin-top: 15px;">
+    <button class="edit-order-btn" onclick="enableEditMode('${order.id}')">✏️ Sửa</button>
+    <button class="payment-btn" style="background: #9b59b6; color: white;" onclick="showBillPreview(${order.id})">👁️ Xem hóa đơn</button>
+  </div>
+  <button class="quick-pay-btn" onclick="openPaymentPopup(${order.id})">💰 Thanh toán ngay</button>
+`}
+
       </div>
     `;
   }).join('');
@@ -1888,6 +2013,89 @@ function requestNotificationPermission() {
     updateReports();
   }
 })();
+
+// Biến lưu order ID đang xử lý
+let currentPaymentOrderId = null;
+
+// Mở popup thanh toán
+function openPaymentPopup(orderId) {
+  const order = mergedOrders.find(o => o.id === orderId);
+  if (!order) {
+    console.error('Không tìm thấy đơn hàng');
+    return;
+  }
+
+  currentPaymentOrderId = orderId;
+  
+  // Cập nhật thông tin trong popup
+  document.getElementById('popupTotal').textContent = formatMoney(order.total);
+  
+  const typeLabels = {
+    'dine': `🍽️ Ăn tại quán - Bàn ${order.table_number}`,
+    'takeout': '📦 Mang về',
+    'grab': '🛵 Grab',
+    'shopee': '🛒 Shopee'
+  };
+  
+  document.getElementById('popupOrderType').textContent = typeLabels[order.order_type] || order.order_type;
+  
+  // Hiện popup
+  document.getElementById('paymentPopup').style.display = 'block';
+}
+
+// Đóng popup
+function closePaymentPopup() {
+  document.getElementById('paymentPopup').style.display = 'none';
+  currentPaymentOrderId = null;
+}
+
+// Xác nhận thanh toán từ popup
+function confirmPaymentFromPopup(method) {
+  if (!currentPaymentOrderId) return;
+  
+  closePaymentPopup();
+  payOrder(currentPaymentOrderId, method);
+}
+
+// Đóng popup khi click bên ngoài
+window.addEventListener('click', function(event) {
+  const popup = document.getElementById('paymentPopup');
+  if (event.target === popup) {
+    closePaymentPopup();
+  }
+});
+
   </script>
+  <!-- Payment Popup -->
+<div id="paymentPopup" class="payment-popup">
+  <div class="payment-popup-content">
+    <div class="payment-popup-header">
+      <h3>💰 Chọn phương thức thanh toán</h3>
+      <button class="payment-popup-close" onclick="closePaymentPopup()">&times;</button>
+    </div>
+    <div class="payment-popup-body">
+      <div id="paymentPopupInfo" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; text-align: center;">
+        <div style="font-size: 24px; font-weight: 700; color: #e74c3c;" id="popupTotal">0đ</div>
+        <div style="font-size: 14px; color: #777; margin-top: 5px;" id="popupOrderType"></div>
+      </div>
+      <button class="payment-method-btn cash" onclick="confirmPaymentFromPopup('cash')">
+        <span style="font-size: 24px;">💵</span>
+        <span>Tiền mặt</span>
+      </button>
+      <button class="payment-method-btn transfer" onclick="confirmPaymentFromPopup('transfer')">
+        <span style="font-size: 24px;">🏦</span>
+        <span>Chuyển khoản</span>
+      </button>
+      <button class="payment-method-btn grab" onclick="confirmPaymentFromPopup('grab')">
+        <span style="font-size: 24px;">🛵</span>
+        <span>Grab</span>
+      </button>
+      <button class="payment-method-btn shopee" onclick="confirmPaymentFromPopup('shopee')">
+        <span style="font-size: 24px;">🛒</span>
+        <span>Shopee</span>
+      </button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
