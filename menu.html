@@ -806,6 +806,7 @@ async function submitOrder() {
     return;
   }
 
+  // ⭐ THÊM ĐOẠN NÀY - Validate token trước khi đặt món
   const sessionValid = await validateToken(window.sessionToken);
   if (!sessionValid) {
     alert('⏱️ Phiên đã hết hạn!\n\nVui lòng quét lại mã QR từ bàn.');
@@ -815,87 +816,25 @@ async function submitOrder() {
 
   const note = document.getElementById('orderNote').value.trim();
 
-   // ⭐ KIỂM TRA XEM BÀN NÀY ĐÃ CÓ ĐơN PENDING CHƯA
+  const order = {
+    id: Date.now(),
+    store_code: storeCode,
+    user_id: `qr_${storeCode}_table${tableNumber}`,
+    table_number: tableNumber,
+    session_token: window.sessionToken,  // ⭐ THÊM token vào đơn hàng
+    order_type: 'dine',
+    order_source: 'qr',
+    note: note,
+    items: {...cart},
+    total: Object.keys(cart).reduce((sum, id) => {
+      const item = findItemById(id);
+      return sum + (item ? item.price * cart[id] : 0);
+    }, 0),
+    status: 'pending',
+    created_at: new Date().toISOString()
+  };
+
   try {
-    const { data: existingOrders, error: fetchError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('store_code', storeCode)
-      .eq('table_number', tableNumber)
-      .eq('status', 'pending')
-      .limit(1);
-
-    if (fetchError) throw fetchError;
-
-    if (existingOrders && existingOrders.length > 0) {
-      // ⭐ ĐÃ CÓ ĐƠN → GỘP MÓN VÀO ĐƠN HIỆN TẠI
-      const existingOrder = existingOrders[0];
-      
-      // Gộp món
-      Object.keys(cart).forEach(itemId => {
-        if (existingOrder.items[itemId]) {
-          existingOrder.items[itemId] += cart[itemId];
-        } else {
-          existingOrder.items[itemId] = cart[itemId];
-        }
-      });
-
-      // Tính lại tổng tiền
-      existingOrder.total = Object.keys(existingOrder.items).reduce((sum, id) => {
-        const item = findItemById(id);
-        return sum + (item ? item.price * existingOrder.items[id] : 0);
-      }, 0);
-
-      // Thêm ghi chú mới
-      if (note) {
-        existingOrder.note = existingOrder.note 
-          ? `${existingOrder.note} | ${note}` 
-          : note;
-      }
-
-      // Cập nhật đơn
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ 
-          items: existingOrder.items,
-          total: existingOrder.total,
-          note: existingOrder.note,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingOrder.id);
-
-      if (updateError) throw updateError;
-
-      cart = {};
-      document.getElementById('orderNote').value = '';
-      renderMenu();
-      updateCartFloat();
-      
-      alert('✅ Đã thêm món vào đơn hiện tại!');
-      switchTab(1);
-      await loadCurrentOrders();
-      return;
-    }
-
-    // ⭐ CHƯA CÓ ĐƠN → TẠO MỚI
-    const order = {
-      id: Date.now(),
-      store_code: storeCode,
-      user_id: `qr_${storeCode}_table${tableNumber}`,
-      table_number: tableNumber,
-      session_token: window.sessionToken,
-      order_type: 'dine',
-      order_source: 'qr',
-      note: note,
-      items: {...cart},
-      total: Object.keys(cart).reduce((sum, id) => {
-        const item = findItemById(id);
-        return sum + (item ? item.price * cart[id] : 0);
-      }, 0),
-      status: 'pending',
-      created_at: new Date().toISOString()
-    };
-
     const { error } = await supabase
       .from('orders')
       .insert([order]);
@@ -904,12 +843,14 @@ async function submitOrder() {
 
     cart = {};
     document.getElementById('orderNote').value = '';
+    closeCart();
     renderMenu();
     updateCartFloat();
     
-    alert('✅ Đặt món thành công!\n\nMón của bạn đang được chuẩn bị.');
+    alert('✅ Đặt món thành công!\n\nMón của bạn đang được chuẩn bị. Vui lòng chờ trong giây lát.');
+    
     switchTab(1);
-    await loadCurrentOrders();
+    loadCurrentOrders();
 
   } catch (error) {
     console.error('Lỗi đặt món:', error);
@@ -917,18 +858,15 @@ async function submitOrder() {
   }
 }
 
-
 async function loadCurrentOrders() {
   try {
-    // ⭐ CHỈ LẤY 1 ĐƠN DUY NHẤT CỦA BÀN NÀY (pending)
     const { data, error } = await supabase
       .from('orders')
       .select('*')
       .eq('store_code', storeCode)
       .eq('table_number', tableNumber)
       .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(1);
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -954,43 +892,53 @@ function renderCurrentOrders() {
     return;
   }
 
-  // ⭐ CHỈ HIỂN THỊ 1 ĐƠN DUY NHẤT
-  const order = currentOrders[0];
-  let itemsHtml = '';
-  
-  Object.keys(order.items).forEach(itemId => {
-    const item = findItemById(itemId);
-    if (!item) return;
-    
-    const qty = order.items[itemId];
-    const subtotal = item.price * qty;
+  let html = '';
+  let grandTotal = 0;
 
-    itemsHtml += `
-      <div class="order-item">
-        <span>${item.name} x ${qty}</span>
-        <strong>${formatMoney(subtotal)}</strong>
+  currentOrders.forEach(order => {
+    let itemsHtml = '';
+    Object.keys(order.items).forEach(itemId => {
+      const item = findItemById(itemId);
+      if (!item) return;
+      
+      const qty = order.items[itemId];
+      const subtotal = item.price * qty;
+
+      itemsHtml += `
+        <div class="order-item">
+          <span>${item.name} x ${qty}</span>
+          <strong>${formatMoney(subtotal)}</strong>
+        </div>
+      `;
+    });
+
+    grandTotal += order.total;
+
+    html += `
+      <div class="current-order-card">
+        <div style="margin-bottom: 10px; color: #999; font-size: 13px;">
+          ${new Date(order.created_at).toLocaleTimeString('vi-VN')}
+        </div>
+        ${order.note ? `<div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 14px;">📝 ${order.note}</div>` : ''}
+        ${itemsHtml}
+        <div class="order-total">
+          <span>Tổng:</span>
+          <span>${formatMoney(order.total)}</span>
+        </div>
       </div>
     `;
   });
 
-  let html = `
-    <div class="current-order-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <div style="color: #999; font-size: 13px;">
-          ${new Date(order.created_at).toLocaleTimeString('vi-VN')}
-        </div>
-        <div style="background: #27ae60; color: white; padding: 5px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-          ⏳ Đang chuẩn bị
+  if (currentOrders.length > 1) {
+    html += `
+      <div class="current-order-card" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white;">
+        <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 700;">
+          <span>TỔNG CỘNG:</span>
+          <span>${formatMoney(grandTotal)}</span>
         </div>
       </div>
-      ${order.note ? `<div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 14px;">📝 ${order.note}</div>` : ''}
-      ${itemsHtml}
-      <div class="order-total">
-        <span>Tổng:</span>
-        <span>${formatMoney(order.total)}</span>
-      </div>
-    </div>
-  `;
+    `;
+  }
 
   html += `
     <div style="background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: center; font-size: 14px; border: 1px solid #bee5eb;">
@@ -1002,12 +950,12 @@ function renderCurrentOrders() {
 }
 
 function subscribeToOrders() {
-  // ⭐ Lắng nghe TẤT CẢ THAY ĐỔI (INSERT, UPDATE, DELETE) của đơn hàng
+  // Channel cho orders - lắng nghe cả INSERT và UPDATE
   supabase
     .channel('customer-orders')
     .on('postgres_changes', 
       { 
-        event: '*',  // INSERT, UPDATE, DELETE
+        event: '*',  // Lắng nghe tất cả: INSERT, UPDATE, DELETE
         schema: 'public', 
         table: 'orders',
         filter: `table_number=eq.${tableNumber}`
@@ -1015,24 +963,23 @@ function subscribeToOrders() {
       (payload) => {
         console.log('🔔 Order changed:', payload);
         
-        // ⭐ Reload đơn hàng real-time
+        // Reload đơn hàng khi có thay đổi
         loadCurrentOrders();
         
-        // ⭐ Hiện thông báo nếu nhân viên sửa đơn
+        // Nếu là UPDATE và đang ở tab Menu → hiện thông báo
         if (payload.eventType === 'UPDATE') {
           const currentTab = document.querySelector('.tab.active');
           const tabIndex = Array.from(document.querySelectorAll('.tab')).indexOf(currentTab);
           
           if (tabIndex === 0) {  // Đang ở tab Menu
-            // Không alert liên tục, chỉ log
-            console.log('📝 Nhân viên đã cập nhật đơn hàng');
+            alert('📝 Nhân viên đã cập nhật đơn hàng của bạn!');
           }
         }
       }
     )
     .subscribe();
-
-  // ⭐ Lắng nghe session
+  
+  // ⭐ THÊM MỚI - Lắng nghe thay đổi session
   supabase
     .channel('customer-session')
     .on('postgres_changes',
@@ -1045,8 +992,9 @@ function subscribeToOrders() {
       async (payload) => {
         console.log('🔔 Session changed:', payload.new);
         
+        // Nếu session bị đóng → Kick khách ra
         if (payload.new.status === 'closed') {
-          alert('✅ Đơn hàng đã được thanh toán!\n\nCảm ơn quý khách.');
+          alert('✅ Đơn hàng đã được thanh toán!\n\nCảm ơn quý khách. Hẹn gặp lại!');
           showExpiredScreen('Phiên đã kết thúc.<br>Quét mã QR để đặt món lại.');
         }
       }
@@ -1054,6 +1002,16 @@ function subscribeToOrders() {
     .subscribe();
 }
 
+// Kiểm tra session mỗi 30 giây
+setInterval(async () => {
+  if (!window.sessionToken) return;
+  
+  const sessionValid = await validateToken(window.sessionToken);
+  if (!sessionValid) {
+    alert('⏱️ Phiên đã hết hạn!\n\nVui lòng quét lại mã QR từ bàn.');
+    window.location.reload();
+  }
+}, 30000); // 30 giây
 
 function switchTab(index) {
   document.querySelectorAll('.tab').forEach((tab, i) => {
