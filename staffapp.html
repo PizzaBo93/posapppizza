@@ -1105,7 +1105,7 @@ localStorage.removeItem('pizza_current_store');
       }
 
       try {
-        // Cập nhật vào Supabase
+        // ⭐ CẬP NHẬT VÀO SUPABASE - Real-time sẽ tự đồng bộ sang khách
         const { error } = await supabase
           .from('orders')
           .update({ 
@@ -1117,6 +1117,12 @@ localStorage.removeItem('pizza_current_store');
           .eq('id', existingOrder.id);
 
         if (error) throw error;
+        
+        // ⭐ CẬP NHẬT LOCAL STATE
+        const orderIndex = orders.findIndex(o => o.id === existingOrder.id);
+        if (orderIndex !== -1) {
+          orders[orderIndex] = existingOrder;
+        }
 
         cart = {};
         document.getElementById('orderNote').value = '';
