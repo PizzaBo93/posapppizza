@@ -860,6 +860,7 @@
     let currentUser = '';
     let currentStore = '';
     let orders = [];
+    let mergedOrders = [];
     let cart = {};
     let dailyReport = {
   revenue: { 
@@ -1187,7 +1188,76 @@ localStorage.removeItem('pizza_current_store');
     return;
   }
 
-  grid.innerHTML = orders.map(order => {
+  // ⭐ GỘP CÁC ĐỚN CÙNG BÀN (CHỈ VỚI ĐƠN ĂN TẠI QUÁN)
+  const mergedOrders = [];
+  const tableOrders = {}; // { "table_1": [order1, order2, ...] }
+  const otherOrders = []; // Đơn mang về, Grab, Shopee
+  
+  orders.forEach(order => {
+    if (order.order_type === 'dine' && order.table_number) {
+      const tableKey = `table_${order.table_number}`;
+      if (!tableOrders[tableKey]) {
+        tableOrders[tableKey] = [];
+      }
+      tableOrders[tableKey].push(order);
+    } else {
+      otherOrders.push(order);
+    }
+  });
+  
+  // Gộp đơn cùng bàn thành 1 đơn tổng hợp
+  Object.keys(tableOrders).forEach(tableKey => {
+    const ordersForTable = tableOrders[tableKey];
+    
+    if (ordersForTable.length === 1) {
+      // Chỉ có 1 đơn → Giữ nguyên
+      mergedOrders.push(ordersForTable[0]);
+    } else {
+      // Có nhiều đơn → Gộp lại
+      const mergedOrder = {
+        id: ordersForTable[0].id, // Lấy ID đơn đầu tiên để xử lý
+        order_ids: ordersForTable.map(o => o.id), // Lưu tất cả IDs để thanh toán
+        store_code: ordersForTable[0].store_code,
+        order_type: 'dine',
+        table_number: ordersForTable[0].table_number,
+        items: {},
+        total: 0,
+        status: 'pending',
+        created_at: ordersForTable[0].created_at,
+        notes: [], // Gộp tất cả ghi chú
+        is_merged: true, // Đánh dấu đây là đơn gộp
+        order_source: ordersForTable.some(o => o.order_source === 'qr') ? 'qr' : 'staff'
+      };
+      
+      // Gộp items và notes
+      ordersForTable.forEach(order => {
+        // Gộp items
+        Object.keys(order.items).forEach(itemId => {
+          if (mergedOrder.items[itemId]) {
+            mergedOrder.items[itemId] += order.items[itemId];
+          } else {
+            mergedOrder.items[itemId] = order.items[itemId];
+          }
+        });
+        
+        // Gộp notes
+        if (order.note) {
+          mergedOrder.notes.push(order.note);
+        }
+        
+        // Cộng tổng tiền
+        mergedOrder.total += order.total;
+      });
+      
+      mergedOrders.push(mergedOrder);
+    }
+  });
+  
+  // Thêm các đơn không phải ăn tại quán
+  mergedOrders.push(...otherOrders);
+  
+  // Render các đơn đã gộp
+  grid.innerHTML = mergedOrders.map(order => {
     let typeClass, typeLabel, orderInfo = '';
     
     if (order.order_type === 'dine' || order.type === 'dine') {
@@ -1259,7 +1329,14 @@ localStorage.removeItem('pizza_current_store');
             ${formatMoney(order.total)}
           </div>
         </div>
-        ${order.note ? `<div style="margin-bottom: 10px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;"><strong>📝 Ghi chú:</strong> ${order.note}</div>` : ''}
+        ${order.is_merged && order.notes.length > 0 ? 
+  `<div style="margin-bottom: 10px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+    <strong>📝 Ghi chú:</strong><br>
+    ${order.notes.map((note, i) => `• ${note}`).join('<br>')}
+  </div>` 
+  : order.note ? 
+  `<div style="margin-bottom: 10px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;"><strong>📝 Ghi chú:</strong> ${order.note}</div>` 
+  : ''}
         <div class="order-items">
           ${itemsHtml}
         </div>
@@ -1281,7 +1358,7 @@ localStorage.removeItem('pizza_current_store');
 
 
  async function payOrder(orderId, method) {
-  const order = orders.find(o => o.id === orderId);
+  const order = mergedOrders.find(o => o.id === orderId); // Tìm trong mergedOrders
   if (!order) return;
 
   const methodLabels = {
@@ -1296,25 +1373,42 @@ localStorage.removeItem('pizza_current_store');
   }
 
   try {
+    // ⭐ Nếu là đơn gộp → Thanh toán TẤT CẢ đơn con
+    const orderIds = order.is_merged ? order.order_ids : [orderId];
+    
     const { error } = await supabase
       .from('orders')
       .update({ 
         status: 'paid',
         payment_method: method 
       })
-      .eq('id', orderId);
+      .in('id', orderIds); // Thanh toán nhiều đơn cùng lúc
 
     if (error) throw error;
 
+    // ⭐ Nếu đơn có QR → Đóng session
+    if (order.order_type === 'dine' && order.table_number) {
+      const { data: sessions } = await supabase
+        .from('qr_sessions')
+        .select('token')
+        .eq('store_code', currentStore)
+        .eq('table_number', order.table_number)
+        .eq('status', 'active');
+      
+      if (sessions && sessions.length > 0) {
+        await supabase
+          .from('qr_sessions')
+          .update({ status: 'closed' })
+          .in('token', sessions.map(s => s.token));
+      }
+    }
     
     // Cập nhật báo cáo
     dailyReport.revenue.total += order.total;
     dailyReport.revenue[method] = (dailyReport.revenue[method] || 0) + order.total;
     
-    // CHỈ CẬP NHẬT KÉT TIỀN KHI THANH TOÁN BẰNG TIỀN MẶT
     if (method === 'cash') {
-      dailyReport.cash.collected += order.total;
-
+      dailyReport.cash.collected = (dailyReport.cash.collected || 0) + order.total;
     }
 
     Object.keys(order.items).forEach(itemId => {
@@ -1327,7 +1421,9 @@ localStorage.removeItem('pizza_current_store');
       dailyReport.items[item.name] += order.items[itemId];
     });
 
-    orders = orders.filter(o => o.id !== orderId);
+    // ⭐ Xóa TẤT CẢ đơn con khỏi danh sách
+    orders = orders.filter(o => !orderIds.includes(o.id));
+    
     await saveData();
     renderOrders();
     updateReports();
