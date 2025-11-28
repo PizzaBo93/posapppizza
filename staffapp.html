@@ -263,21 +263,52 @@ select:hover {
       border-top: 2px solid #ddd;
     }
 
-    .orders-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 20px;
-    }
+.orders-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 15px !important;
+  align-items: start !important;
+}
+@media (min-width: 1600px) {
+  .orders-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
 
-    .order-card {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border: 1px solid #e8e8e8;
-      transition: box-shadow 0.3s;
-    }
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .orders-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
 
+@media (min-width: 768px) and (max-width: 1199px) {
+  .orders-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .orders-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+   .order-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border: 1px solid #e8e8e8;
+  transition: box-shadow 0.3s;
+  height: fit-content;
+}
+
+/* Tối ưu cho màn hình nhỏ hơn */
+@media (max-width: 1023px) {
+  .order-card {
+    padding: 16px;
+  }
+}
     .order-card:hover {
       box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
@@ -476,9 +507,6 @@ select:hover {
         grid-template-columns: 1fr;
       }
 
-      .orders-grid {
-        grid-template-columns: 1fr;
-      }
 
       .stats-grid {
         grid-template-columns: 1fr;
@@ -2238,6 +2266,22 @@ function updateQuantityDisplay(itemId) {
   // Thêm các đơn không phải ăn tại quán
   mergedOrders.push(...otherOrders);
   
+  // Thêm style trực tiếp vào grid
+// Thêm style trực tiếp vào grid - responsive 4 cột
+grid.style.display = 'grid';
+grid.style.gap = '15px';
+grid.style.alignItems = 'start';
+
+// Điều chỉnh số cột theo kích thước màn hình
+if (window.innerWidth >= 1600) {
+  grid.style.gridTemplateColumns = 'repeat(6, 1fr)';
+} else if (window.innerWidth >= 1200) {
+  grid.style.gridTemplateColumns = 'repeat(5, 1fr)';
+} else if (window.innerWidth >= 768) {
+  grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+} else {
+  grid.style.gridTemplateColumns = '1fr';
+}
   // Render các đơn đã gộp
   grid.innerHTML = mergedOrders.map(order => {
     let typeClass, typeLabel, orderInfo = '';
@@ -2927,6 +2971,14 @@ function requestNotificationPermission() {
     updateReports();
   }
 })();
+
+// Tự động điều chỉnh grid khi resize
+window.addEventListener('resize', () => {
+  const currentTab = document.querySelector('.tab.active');
+  if (currentTab && currentTab.id === 'tab-current') {
+    renderOrders();
+  }
+});
   </script>
 </body>
 </html>
