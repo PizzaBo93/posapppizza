@@ -1426,6 +1426,25 @@ select:hover {
   </div>
 
   <div class="report-section">
+  <div class="category-header" onclick="toggleReportSection('bases')">
+    <span>🍕 Thống Kê Đế Bánh</span>
+    <span class="category-icon" id="icon-bases">▼</span>
+  </div>
+  <div class="category-items" id="items-bases">
+    <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="stat-card">
+        <div class="stat-value" id="pizzaBaseS">0</div>
+        <div class="stat-label">Đế Size S</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="pizzaBaseL">0</div>
+        <div class="stat-label">Đế Size L</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div class="report-section">
     <div class="category-header" onclick="toggleReportSection('cash')">
       <span>💰 Quản Lý Két Tiền</span>
       <span class="category-icon" id="icon-cash">▼</span>
@@ -1503,7 +1522,7 @@ select:hover {
             { id: 's4', name: 'Tok Lắc Phô Mai', price: 15000 },
             { id: 's5', name: 'Bánh Mì Bơ Tỏi', price: 15000 },
             { id: 's6', name: 'Gà lắc phô mai cay (nhỏ)', price: 25000 },
-            { id: 's7', name: 'Gà lắc phô mai cay (lớn)', price: 35000 },
+            { id: 's7', name: 'Gà lắc phô mai cay (lớn)', price: 45000 },
             { id: 's8', name: 'Gà rán chiên giòn (nhỏ)', price: 25000 },
             { id: 's9', name: 'Gà rán chiên giòn (lớn)', price: 30000 },
             { id: 's10', name: 'Mì Ý đút lò', price: 59000 },
@@ -1543,11 +1562,30 @@ select:hover {
             { id: 'c8', name: 'Combo 8 (1 Pizza size S bất kỳ + 1 khoai tây chiên + 1 nước ngọt)', price: 59000 }
             ],
 
-            'Add - on': [
-            { id: 'a1', name: 'Phô mai thêm S', price: 10000 },
-            { id: 'a2', name: 'Phô mai thêm L', price: 20000 },
-            { id: 'a3', name: 'Bò thêm', price: 10000 },
-    ]
+     'Add - on': [
+    { id: 'a1', name: 'Phô mai thêm S', price: 10000 },
+    { id: 'a2', name: 'Phô mai thêm L', price: 20000 },
+
+    { id: 'a3', name: 'Bò thêm', price: 15000 },
+    { id: 'a12', name: 'Gà thêm', price: 15000 },
+    { id: 'a13', name: 'Xúc xích Đức thêm', price: 15000 },
+
+    { id: 'a4', name: 'Xúc Xích Heo thêm', price: 10000 },
+    { id: 'a5', name: 'Ba Rọi Xông Khói thêm', price: 10000 },
+
+    { id: 'a6', name: 'Bắp thêm', price: 10000 },
+    { id: 'a7', name: 'Bông Cải Xanh thêm', price: 10000 },
+
+    { id: 'a8', name: 'Cá Ngừ thêm', price: 15000 },
+    { id: 'a9', name: 'Thanh Cua thêm', price: 15000 },
+
+    { id: 'a10', name: 'Nấm thêm', price: 10000 },
+    { id: 'a11', name: 'Thơm thêm', price: 10000 },
+     {id: 'a14', name: 'đổi bánh đặc biệt', price: 10000 },
+      {id: 'a15', name: 'đổi trà đào', price: 10000 },
+
+]
+
     };
 
     // Thêm vào đầu phần <script>, sau khai báo menuData
@@ -1569,7 +1607,8 @@ select:hover {
     shopee: 0
   },
   items: {},
-  cash: { start: 0, current: 0 }
+  cash: { start: 0, current: 0 },
+  pizzaBases: { S: 0, L: 0 }
 };
 let currentUser = null;
     let permissions = {
@@ -2541,8 +2580,14 @@ ordersToUpdate.forEach(singleOrder => {
       dailyReport.items[item.name] = 0;
     }
     dailyReport.items[item.name] += singleOrder.items[itemId];
+
+     // ⭐ THÊM TÍNH ĐẾ BÁNH
+    const bases = countPizzaBases(itemId, singleOrder.items[itemId]);
+    dailyReport.pizzaBases.S += bases.S;
+    dailyReport.pizzaBases.L += bases.L;
   });
 });
+
 
     // ⭐ Xóa TẤT CẢ đơn con khỏi danh sách
     orders = orders.filter(o => !orderIds.includes(o.id));
@@ -2581,6 +2626,9 @@ function toggleReportSection(section) {
     </div>
   `).join('');
   soldItems.innerHTML = itemsHtml || '<p style="color: #999;">Chưa có món nào được bán</p>';
+
+  document.getElementById('pizzaBaseS').textContent = dailyReport.pizzaBases.S;
+  document.getElementById('pizzaBaseL').textContent = dailyReport.pizzaBases.L;
 
   document.getElementById('displayStartCash').textContent = formatMoney(dailyReport.cash.start);
   document.getElementById('displayCashRevenue').textContent = formatMoney(dailyReport.revenue.cash || 0);
@@ -2644,6 +2692,7 @@ function resetCashRegister() {
             revenue: dailyReport.revenue,
             items_sold: dailyReport.items,
             cash_register: dailyReport.cash,
+            pizza_bases: dailyReport.pizzaBases,
             updated_at: new Date().toISOString()
           }, {
             onConflict: 'store_code,user_id,report_date'
@@ -2678,7 +2727,8 @@ function resetCashRegister() {
       dailyReport = {
         revenue: reportData.revenue,
         items: reportData.items_sold,
-        cash: reportData.cash_register
+        cash: reportData.cash_register,
+        pizzaBases: reportData.pizza_bases || { S: 0, L: 0 }
       };
       // Đảm bảo có collected
   if (!dailyReport.cash.collected) {
@@ -3119,6 +3169,39 @@ function renderOrderHistory() {
       </div>
     `;
   }).join('');
+}
+
+// 2. Thêm hàm tính đế bánh từ combo và pizza
+function countPizzaBases(itemId, quantity) {
+  const comboMapping = {
+    'c1': { L: 1 },
+    'c2': { L: 1 },
+    'c3': { L: 2 },
+    'c4': { L: 1 },
+    'c5': { L: 1 },
+    'c6': { L: 1 },
+    'c7': { S: 1 },
+    'c8': { S: 1 }
+  };
+  
+  // Nếu là combo
+  if (comboMapping[itemId]) {
+    return {
+      S: (comboMapping[itemId].S || 0) * quantity,
+      L: (comboMapping[itemId].L || 0) * quantity
+    };
+  }
+  
+  // Nếu là pizza đơn lẻ
+  const item = findItemById(itemId);
+  if (item && item.name.includes('Size S')) {
+    return { S: quantity, L: 0 };
+  }
+  if (item && item.name.includes('Size L')) {
+    return { S: 0, L: quantity };
+  }
+  
+  return { S: 0, L: 0 };
 }
 
 // Tự động điều chỉnh grid khi resize
