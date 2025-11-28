@@ -1239,6 +1239,41 @@ select:hover {
       color: #999;
       text-align: center;
     }
+
+    .history-order {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+  transition: box-shadow 0.3s;
+}
+
+.history-order:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.payment-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.payment-cash { background: #27ae60; }
+.payment-transfer { background: #3498db; }
+.payment-grab { background: #00b14f; }
+.payment-shopee { background: #ee4d2d; }
     
     }
   </style>
@@ -1416,6 +1451,15 @@ select:hover {
         <button class="reset-btn" onclick="resetCashRegister()">Chốt Két & Reset</button>
       </div>
     </div>
+  </div>
+</div>
+<div class="report-section">
+  <div class="category-header" onclick="toggleReportSection('history')">
+    <span>📜 Lịch Sử Đơn Hàng Hôm Nay</span>
+    <span class="category-icon" id="icon-history">▼</span>
+  </div>
+  <div class="category-items" id="items-history">
+    <div id="orderHistory"></div>
   </div>
 </div>
 
@@ -1719,17 +1763,39 @@ if (permissions.canViewReports) {
   updateReports();
 }
 
-// Chuyển đến tab đầu tiên được phép
-if (permissions.canCreateOrder) {
-  switchTab('order');
-} else if (permissions.canViewOrders) {
-  switchTab('current');
-} else if (permissions.canViewReports) {
-  switchTab('report');
+// Thay thế phần cuối hàm initMainApp() từ "// Chuyển đến tab đầu tiên được phép" trở đi
+
+// ⭐ KHÔI PHỤC TAB TRƯỚC ĐÓ HOẶC CHUYỂN ĐẾN TAB MẶC ĐỊNH
+const savedTab = sessionStorage.getItem('pizza_current_tab');
+
+if (savedTab) {
+  // Kiểm tra xem có quyền truy cập tab đã lưu không
+  if ((savedTab === 'order' && permissions.canCreateOrder) ||
+      (savedTab === 'current' && permissions.canViewOrders) ||
+      (savedTab === 'report' && permissions.canViewReports)) {
+    switchTab(savedTab);
+  } else {
+    // Nếu không có quyền, chuyển đến tab được phép đầu tiên
+    if (permissions.canCreateOrder) {
+      switchTab('order');
+    } else if (permissions.canViewOrders) {
+      switchTab('current');
+    } else if (permissions.canViewReports) {
+      switchTab('report');
+    }
+  }
 } else {
-  // ⭐ KHÔNG CÓ QUYỀN GÌ CẢ
-  alert('⚠️ Tài khoản của bạn chưa được cấp quyền!\n\nVui lòng liên hệ quản lý.');
-  logout();
+  // Lần đầu đăng nhập - ưu tiên tab "Đơn Hiện Tại" nếu có quyền
+  if (permissions.canViewOrders) {
+    switchTab('current');
+  } else if (permissions.canCreateOrder) {
+    switchTab('order');
+  } else if (permissions.canViewReports) {
+    switchTab('report');
+  } else {
+    alert('⚠️ Tài khoản của bạn chưa được cấp quyền!\n\nVui lòng liên hệ quản lý.');
+    logout();
+  }
 }
 }
 
@@ -1867,7 +1933,7 @@ function renderOrderForm() {
 }
 
 // 📑 CHUYỂN TAB
-   function switchTab(tabName) {
+  function switchTab(tabName) {
   // ⭐ KIỂM TRA QUYỀN
   if (tabName === 'order' && !permissions.canCreateOrder) {
     alert('🔒 Bạn không có quyền tạo đơn hàng!');
@@ -1882,6 +1948,9 @@ function renderOrderForm() {
     return;
   }
 
+  // ⭐ LƯU TAB HIỆN TẠI VÀO SESSIONSTORAGE
+  sessionStorage.setItem('pizza_current_tab', tabName);
+
   // Xóa active
   document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -1893,6 +1962,7 @@ function renderOrderForm() {
   if (tabEl) tabEl.classList.add('active');
   if (contentEl) contentEl.classList.add('active');
 }
+
 
     function toggleTableSelect() {
       const orderType = document.getElementById('orderType').value;
@@ -2190,20 +2260,24 @@ function updateQuantityDisplay(itemId) {
   }
 }
     
-    function renderOrders() {
+  function renderOrders() {
   const grid = document.getElementById('ordersGrid');
   
-  if (orders.length === 0) {
+  // ⭐ LỌC CHỈ LẤY ĐƠN CHƯA THANH TOÁN
+  const pendingOrders = orders.filter(o => o.status === 'pending');
+  
+  if (pendingOrders.length === 0) {
     grid.innerHTML = '<p style="text-align: center; color: #999;">Không có đơn hàng nào</p>';
     return;
   }
 
-  // ⭐ GỘP CÁC ĐỚN CÙNG BÀN (CHỈ VỚI ĐƠN ĂN TẠI QUÁN)
+  // ⭐ GỘP CÁC ĐƠN CÙNG BÀN (CHỈ VỚI ĐƠN ĂN TẠI QUÁN)
   const mergedOrders = [];
-  const tableOrders = {}; // { "table_1": [order1, order2, ...] }
-  const otherOrders = []; // Đơn mang về, Grab, Shopee
+  const tableOrders = {};
+  const otherOrders = [];
   
-  orders.forEach(order => {
+  // ⭐ DÙNG pendingOrders THAY VÌ orders
+  pendingOrders.forEach(order => {
     if (order.order_type === 'dine' && order.table_number) {
       const tableKey = `table_${order.table_number}`;
       if (!tableOrders[tableKey]) {
@@ -2214,6 +2288,7 @@ function updateQuantityDisplay(itemId) {
       otherOrders.push(order);
     }
   });
+  
   
   // Gộp đơn cùng bàn thành 1 đơn tổng hợp
   Object.keys(tableOrders).forEach(tableKey => {
@@ -2511,6 +2586,7 @@ function toggleReportSection(section) {
   document.getElementById('displayCashRevenue').textContent = formatMoney(dailyReport.revenue.cash || 0);
   document.getElementById('displayTotalCash').textContent = formatMoney((dailyReport.cash.start || 0) + (dailyReport.cash.collected || 0));
 
+   renderOrderHistory();
 }
 
     function setStartCash() {
@@ -2620,24 +2696,25 @@ function resetCashRegister() {
     }
 
     // Load tất cả đơn pending của quán này (bao gồm cả QR orders)
+ // ⭐ THAY ĐỔI PHẦN NÀY - Dùng lại biến today đã khai báo ở trên
     const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
       .select('*')
       .eq('store_code', currentStore)
-      .eq('status', 'pending')
+      .or(`status.eq.pending,and(status.eq.paid,created_at.gte.${today})`)
       .order('created_at', { ascending: false });
 
     if (ordersData && !ordersError) {
       orders = ordersData;
     }
 
-    // Kích hoạt real-time subscription
     subscribeToOrders();
 
   } catch (error) {
     console.error('Lỗi load dữ liệu:', error);
   }
 }
+
 
 function showBillPreview(orderId) {
   const order = orders.find(o => o.id === orderId);
@@ -2971,6 +3048,78 @@ function requestNotificationPermission() {
     updateReports();
   }
 })();
+
+function renderOrderHistory() {
+  const historyContainer = document.getElementById('orderHistory');
+  
+   // ⭐ LỌC CHỈ LẤY ĐƠN ĐÃ THANH TOÁN TRONG NGÀY
+  const today = new Date().toISOString().split('T')[0];
+  const paidOrders = orders.filter(o => 
+    o.status === 'paid' && 
+    o.created_at && 
+    o.created_at.startsWith(today)
+  );
+  
+  if (paidOrders.length === 0) {
+    historyContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Chưa có đơn hàng nào được thanh toán hôm nay</p>';
+    return;
+  }
+  
+  const paymentLabels = {
+    'cash': '💵 Tiền mặt',
+    'transfer': '🏦 Chuyển khoản',
+    'grab': '🛵 Grab',
+    'shopee': '🛒 Shopee'
+  };
+  
+  const typeLabels = {
+    'dine': '🍽️ Ăn tại quán',
+    'takeout': '📦 Mang về',
+    'grab': '🛵 Grab',
+    'shopee': '🛒 Shopee'
+  };
+  
+  historyContainer.innerHTML = paidOrders.map(order => {
+    const itemsHtml = Object.keys(order.items).map(itemId => {
+      const item = findItemById(itemId);
+      if (!item) return '';
+      const qty = order.items[itemId];
+      return `
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;">
+          <span>${item.name} x ${qty}</span>
+          <span>${formatMoney(item.price * qty)}</span>
+        </div>
+      `;
+    }).join('');
+    
+    return `
+      <div class="history-order">
+        <div class="history-header">
+          <div>
+            <div style="font-weight: 600; margin-bottom: 5px;">
+              ${typeLabels[order.order_type]}
+              ${order.table_number ? ` - Bàn ${order.table_number}` : ''}
+            </div>
+            <div style="font-size: 12px; color: #999;">
+              ${new Date(order.created_at).toLocaleString('vi-VN')}
+            </div>
+          </div>
+          <span class="payment-badge payment-${order.payment_method}">
+            ${paymentLabels[order.payment_method]}
+          </span>
+        </div>
+        <div style="margin-bottom: 10px;">
+          ${itemsHtml}
+        </div>
+        ${order.note ? `<div style="padding: 8px; background: #f9f9f9; border-radius: 4px; font-size: 13px; margin-bottom: 8px;"><strong>Ghi chú:</strong> ${order.note}</div>` : ''}
+        <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #f0f0f0; font-weight: 700; color: #e74c3c;">
+          <span>Tổng cộng:</span>
+          <span>${formatMoney(order.total)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
 
 // Tự động điều chỉnh grid khi resize
 window.addEventListener('resize', () => {
