@@ -1568,7 +1568,7 @@ select:hover {
             { id: 'p15', name: 'Ba rọi xông khói (Size L)', price: 89000 },
             { id: 'p16', name: 'Salami (Size L)', price: 109000 },
             { id: 'p17', name: 'Phô mai tươi (Size L)', price: 99000 },
-            { id: 'p18', name: "Meat Lover's (Size L)", price: 109000 },
+            { id: 'p18', name: 'Meat Lover (Size L)', price: 109000 },
             { id: 'p19', name: 'Tôm thanh cua (Size L)', price: 99000 },
             { id: 'p20', name: 'Khô Gà - Lạp Xưởng (Size L)', price: 99000 },
             { id: 'p21', name: 'Thập Cẩm (Size L)', price: 109000 },
@@ -2618,30 +2618,6 @@ const ordersToUpdate = order.is_merged
   ? orders.filter(o => order.order_ids.includes(o.id))
   : [order];
 
-ordersToUpdate.forEach(singleOrder => {
-  dailyReport.revenue.total += singleOrder.total;
-  dailyReport.revenue[method] = (dailyReport.revenue[method] || 0) + singleOrder.total;
-  
-  if (method === 'cash') {
-    dailyReport.cash.collected = (dailyReport.cash.collected || 0) + singleOrder.total;
-  }
-
-  Object.keys(singleOrder.items).forEach(itemId => {
-    const item = findItemById(itemId);
-    if (!item) return;
-    
-    if (!dailyReport.items[item.name]) {
-      dailyReport.items[item.name] = 0;
-    }
-    dailyReport.items[item.name] += singleOrder.items[itemId];
-
-     // ⭐ THÊM TÍNH ĐẾ BÁNH
-    const bases = countPizzaBases(itemId, singleOrder.items[itemId]);
-    dailyReport.pizzaBases.S += bases.S;
-    dailyReport.pizzaBases.L += bases.L;
-  });
-});
-
 
     // ⭐ Xóa TẤT CẢ đơn con khỏi danh sách
     orders = orders.filter(o => !orderIds.includes(o.id));
@@ -2666,6 +2642,52 @@ function toggleReportSection(section) {
 }
 
     function updateReports() {
+  // ⭐ TÍNH LẠI TOÀN BỘ TỪ ĐƠN ĐÃ PAID TRONG NGÀY
+  const today = new Date().toISOString().split('T')[0];
+  const paidOrders = orders.filter(o => 
+    o.status === 'paid' && 
+    o.created_at && 
+    o.created_at.startsWith(today)
+  );
+
+  // Reset counters
+  dailyReport.pizzaBases = { S: 0, L: 0 };
+  dailyReport.revenue = { total: 0, cash: 0, transfer: 0, grab: 0, shopee: 0 };
+  dailyReport.items = {};
+  dailyReport.cash.collected = 0;
+
+  // Tính lại từ lịch sử
+  paidOrders.forEach(order => {
+    // Doanh thu
+    dailyReport.revenue.total += order.total;
+    dailyReport.revenue[order.payment_method] = 
+      (dailyReport.revenue[order.payment_method] || 0) + order.total;
+    
+    if (order.payment_method === 'cash') {
+      dailyReport.cash.collected += order.total;
+    }
+
+    // Món đã bán & Đế bánh
+    Object.keys(order.items).forEach(itemId => {
+      const item = findItemById(itemId);
+      if (!item) return;
+      
+      const qty = order.items[itemId];
+      
+      // Đếm món
+      if (!dailyReport.items[item.name]) {
+        dailyReport.items[item.name] = 0;
+      }
+      dailyReport.items[item.name] += qty;
+
+      // ⭐ TÍNH ĐẾ BÁNH
+      const bases = countPizzaBases(itemId, qty);
+      dailyReport.pizzaBases.S += bases.S;
+      dailyReport.pizzaBases.L += bases.L;
+    });
+  });
+
+  // Hiển thị UI (giữ nguyên phần này)
   document.getElementById('totalRevenue').textContent = formatMoney(dailyReport.revenue.total);
   document.getElementById('cashRevenue').textContent = formatMoney(dailyReport.revenue.cash || 0);
   document.getElementById('transferRevenue').textContent = formatMoney(dailyReport.revenue.transfer || 0);
@@ -2685,17 +2707,17 @@ function toggleReportSection(section) {
   document.getElementById('pizzaBaseL').textContent = dailyReport.pizzaBases.L;
 
   document.getElementById('displayStartCash').textContent = formatMoney(dailyReport.cash.start || 0);
-document.getElementById('displayCashRevenue').textContent = formatMoney(dailyReport.revenue.cash || 0);
-document.getElementById('displayOtherIncome').textContent = formatMoney(dailyReport.cash.otherIncome || 0);
-document.getElementById('displayExpense').textContent = formatMoney(dailyReport.cash.expense || 0);
+  document.getElementById('displayCashRevenue').textContent = formatMoney(dailyReport.revenue.cash || 0);
+  document.getElementById('displayOtherIncome').textContent = formatMoney(dailyReport.cash.otherIncome || 0);
+  document.getElementById('displayExpense').textContent = formatMoney(dailyReport.cash.expense || 0);
 
-const totalCash = (dailyReport.cash.start || 0) 
-                + (dailyReport.revenue.cash || 0) 
-                + (dailyReport.cash.otherIncome || 0) 
-                - (dailyReport.cash.expense || 0);
-document.getElementById('displayTotalCash').textContent = formatMoney(totalCash);
+  const totalCash = (dailyReport.cash.start || 0) 
+                  + (dailyReport.revenue.cash || 0) 
+                  + (dailyReport.cash.otherIncome || 0) 
+                  - (dailyReport.cash.expense || 0);
+  document.getElementById('displayTotalCash').textContent = formatMoney(totalCash);
 
-   renderOrderHistory();
+  renderOrderHistory();
 }
 
     function setStartCash() {
