@@ -744,18 +744,6 @@ select:hover {
       position: relative;
     }
 
-    .toggle-password {
-      position: absolute;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 20px;
-      padding: 0;
-      width: auto;
-    }
 
     button {
       width: 100%;
@@ -1022,9 +1010,6 @@ select:hover {
       box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
     }
 
-    .password-wrapper {
-      position: relative;
-    }
 
     .toggle-password {
       position: absolute;
@@ -1299,19 +1284,16 @@ select:hover {
           >
         </div>
         
-        <div class="form-group">
-          <label>🔑 Mật khẩu</label>
-          <div class="password-wrapper">
-            <input 
-              type="password" 
-              id="password" 
-              placeholder="Nhập mật khẩu"
-              autocomplete="current-password"
-              required
-            >
-            <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
-          </div>
-        </div>
+      <div class="form-group">
+        <label>🔑 Mật khẩu</label>
+        <input 
+          type="password" 
+          id="password" 
+          placeholder="Nhập mật khẩu"
+          autocomplete="current-password"
+          required
+        >
+      </div>
         
         <button type="submit" id="loginBtn">🔐 Đăng nhập</button>
       </form>
@@ -1445,33 +1427,112 @@ select:hover {
 </div>
 
   <div class="report-section">
-    <div class="category-header" onclick="toggleReportSection('cash')">
-      <span>💰 Quản Lý Két Tiền</span>
-      <span class="category-icon" id="icon-cash">▼</span>
+  <div class="category-header" onclick="toggleReportSection('cash')">
+    <span>💰 Quản Lý Két Tiền</span>
+    <span class="category-icon" id="icon-cash">▼</span>
+  </div>
+  <div class="category-items" id="items-cash">
+    
+    <!-- PHẦN 1: NHẬP LIỆU (CÓ THỂ SỬA) -->
+<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+  <h4 style="margin-bottom: 20px; color: #856404; font-size: 16px;">✏️ Nhập liệu két tiền</h4>
+  
+  <div style="margin-bottom: 15px;">
+    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #856404; font-size: 14px;">
+      💵 Tiền đầu ngày
+    </label>
+    <div style="display: flex; gap: 10px;">
+      <input 
+    type="number" 
+    id="startCash" 
+    placeholder="Nhập số tiền..." 
+    style="flex: 3; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 15px; background: white;"
+  >
+  <button 
+    onclick="setStartCash()" 
+    style="flex: 1; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap; min-width: 80px;"
+  >
+        Cập nhật
+      </button>
     </div>
-    <div class="category-items" id="items-cash">
-      <div class="cash-register">
-        <div class="cash-input-group">
-          <input type="number" id="startCash" placeholder="Nhập tiền đầu ngày">
-          <button onclick="setStartCash()">Cập nhật</button>
-        </div>
-        <div class="cash-info">
-          <span>Tiền đầu ngày:</span>
-          <strong id="displayStartCash">0đ</strong>
-        </div>
-        <div class="cash-info">
-          <span>Tiền mặt thu được:</span>
-          <strong id="displayCashRevenue">0đ</strong>
-        </div>
-        <div class="cash-info">
-          <span>Tổng két tiền:</span>
-          <strong id="displayTotalCash">0đ</strong>
-        </div>
-        <button class="reset-btn" onclick="resetCashRegister()">Chốt Két & Reset</button>
-      </div>
+  </div>
+  
+  <div style="margin-bottom: 15px;">
+    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #856404; font-size: 14px;">
+      ➕ Thu khác (không phải bán hàng)
+    </label>
+    <div style="display: flex; gap: 10px;">
+      <input 
+    type="number" 
+    id="otherIncome" 
+    placeholder="Nhập số tiền..." 
+    style="flex: 3; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 15px; background: white;"
+  >
+  <button 
+    onclick="setOtherIncome()" 
+    style="flex: 1; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap; min-width: 80px;"
+  >
+        Cập nhật
+      </button>
+    </div>
+  </div>
+  
+  <div style="margin-bottom: 0;">
+    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #856404; font-size: 14px;">
+      ➖ Chi tiêu
+    </label>
+    <div style="display: flex; gap: 10px;">
+       <input 
+    type="number" 
+    id="expense" 
+    placeholder="Nhập số tiền..." 
+    style="flex: 3; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 15px; background: white;"
+  >
+  <button 
+    onclick="setExpense()" 
+    style="flex: 1; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap; min-width: 80px;"
+  >
+        Cập nhật
+      </button>
     </div>
   </div>
 </div>
+
+    <!-- PHẦN 2: BÁO CÁO (KHÔNG SỬA ĐƯỢC) -->
+    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px;">
+      <h4 style="margin-bottom: 15px; color: #333;">📊 Báo cáo két tiền</h4>
+      
+      <div class="cash-info">
+        <span>💵 Tiền đầu ngày:</span>
+        <strong id="displayStartCash">0đ</strong>
+      </div>
+      
+      <div class="cash-info">
+        <span>💰 Thu bán hàng (tiền mặt):</span>
+        <strong id="displayCashRevenue">0đ</strong>
+      </div>
+      
+      <div class="cash-info">
+        <span>➕ Thu khác:</span>
+        <strong id="displayOtherIncome">0đ</strong>
+      </div>
+      
+      <div class="cash-info">
+        <span>➖ Chi tiêu:</span>
+        <strong id="displayExpense" style="color: #e74c3c;">0đ</strong>
+      </div>
+      
+      <div class="cash-info" style="background: #27ae60; color: white; font-size: 16px;">
+        <span>💼 Tổng két tiền:</span>
+        <strong id="displayTotalCash">0đ</strong>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetCashRegister()">🔒 Chốt Két & Reset</button>
+  </div>
+</div>
+
+
 <div class="report-section">
   <div class="category-header" onclick="toggleReportSection('history')">
     <span>📜 Lịch Sử Đơn Hàng Hôm Nay</span>
@@ -1607,7 +1668,12 @@ select:hover {
     shopee: 0
   },
   items: {},
-  cash: { start: 0, current: 0 },
+    cash: { 
+    start: 0,           // Tiền đầu ngày
+    otherIncome: 0,     // Thu khác
+    expense: 0,         // Chi
+    collected: 0        // Tiền bán hàng (tự động)
+  },
   pizzaBases: { S: 0, L: 0 }
 };
 let currentUser = null;
@@ -1658,18 +1724,6 @@ let currentUser = null;
       }
     };
 
-// 🔄 TOGGLE PASSWORD
-    function togglePassword() {
-      const input = document.getElementById('password');
-      const btn = event.target;
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = '🙈';
-      } else {
-        input.type = 'password';
-        btn.textContent = '👁️';
-      }
-    }
 // ❌ HIỂN THỊ LỖI
     function showError(message) {
       const errorDiv = document.getElementById('errorMessage');
@@ -2630,9 +2684,16 @@ function toggleReportSection(section) {
   document.getElementById('pizzaBaseS').textContent = dailyReport.pizzaBases.S;
   document.getElementById('pizzaBaseL').textContent = dailyReport.pizzaBases.L;
 
-  document.getElementById('displayStartCash').textContent = formatMoney(dailyReport.cash.start);
-  document.getElementById('displayCashRevenue').textContent = formatMoney(dailyReport.revenue.cash || 0);
-  document.getElementById('displayTotalCash').textContent = formatMoney((dailyReport.cash.start || 0) + (dailyReport.cash.collected || 0));
+  document.getElementById('displayStartCash').textContent = formatMoney(dailyReport.cash.start || 0);
+document.getElementById('displayCashRevenue').textContent = formatMoney(dailyReport.revenue.cash || 0);
+document.getElementById('displayOtherIncome').textContent = formatMoney(dailyReport.cash.otherIncome || 0);
+document.getElementById('displayExpense').textContent = formatMoney(dailyReport.cash.expense || 0);
+
+const totalCash = (dailyReport.cash.start || 0) 
+                + (dailyReport.revenue.cash || 0) 
+                + (dailyReport.cash.otherIncome || 0) 
+                - (dailyReport.cash.expense || 0);
+document.getElementById('displayTotalCash').textContent = formatMoney(totalCash);
 
    renderOrderHistory();
 }
@@ -2655,25 +2716,74 @@ function toggleReportSection(section) {
   alert('Đã cập nhật tiền đầu ngày!');
 }
 
+function setOtherIncome() {
+  if (!permissions.canManageCash) {
+    alert('🔒 Bạn không có quyền quản lý két tiền!');
+    return;
+  }
+  
+  const amount = parseInt(document.getElementById('otherIncome').value);
+  if (isNaN(amount) || amount < 0) {
+    alert('Vui lòng nhập số tiền hợp lệ!');
+    return;
+  }
+  
+  dailyReport.cash.otherIncome = amount;
+  document.getElementById('otherIncome').value = '';
+  saveData();
+  updateReports();
+  alert('Đã cập nhật thu khác!');
+}
+
+function setExpense() {
+  if (!permissions.canManageCash) {
+    alert('🔒 Bạn không có quyền quản lý két tiền!');
+    return;
+  }
+  
+  const amount = parseInt(document.getElementById('expense').value);
+  if (isNaN(amount) || amount < 0) {
+    alert('Vui lòng nhập số tiền hợp lệ!');
+    return;
+  }
+  
+  dailyReport.cash.expense = amount;
+  document.getElementById('expense').value = '';
+  saveData();
+  updateReports();
+  alert('Đã cập nhật chi tiêu!');
+}
+
+// Tìm hàm resetCashRegister(), THAY BẰNG:
 function resetCashRegister() {
   if (!permissions.canManageCash) {
     alert('🔒 Bạn không có quyền chốt két tiền!');
     return;
   }
   
-  if (!confirm('Xác nhận chốt két và reset dữ liệu ngày mới?')) return;
-
-  const totalCash = dailyReport.cash.start + dailyReport.cash.current;
-  alert(`Tổng két tiền: ${formatMoney(totalCash)}\n\nĐã reset dữ liệu ngày mới!`);
+  const totalCash = (dailyReport.cash.start || 0) 
+                  + (dailyReport.revenue.cash || 0) 
+                  + (dailyReport.cash.otherIncome || 0) 
+                  - (dailyReport.cash.expense || 0);
+  
+  if (!confirm(`📊 BÁO CÁO CUỐI NGÀY:\n\n` +
+               `💵 Tiền đầu ngày: ${formatMoney(dailyReport.cash.start)}\n` +
+               `💰 Thu bán hàng: ${formatMoney(dailyReport.revenue.cash)}\n` +
+               `➕ Thu khác: ${formatMoney(dailyReport.cash.otherIncome)}\n` +
+               `➖ Chi tiêu: ${formatMoney(dailyReport.cash.expense)}\n` +
+               `💼 TỔNG KÉT: ${formatMoney(totalCash)}\n\n` +
+               `Xác nhận chốt két và reset ngày mới?`)) return;
 
   dailyReport = {
     revenue: { total: 0, cash: 0, transfer: 0, grab: 0, shopee: 0 },
     items: {},
-    cash: { start: 0, current: 0, collected: 0 }
+    cash: { start: 0, otherIncome: 0, expense: 0, collected: 0 },
+    pizzaBases: { S: 0, L: 0 }
   };
 
   saveData();
   updateReports();
+  alert('✅ Đã chốt két và reset dữ liệu ngày mới!');
 }
     function formatMoney(amount) {
       return amount.toLocaleString('vi-VN') + 'đ';
