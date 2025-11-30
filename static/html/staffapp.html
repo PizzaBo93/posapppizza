@@ -1,11 +1,6 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý Đơn hàng Pizza</title>
-  <script src="./static/js/supabase.js"></script>
-  <script src="./static/js/bcrypt.js"></script>
+{% extends "base.html" %}
+
+{% block content %}
 
   <style>
     * {
@@ -1265,8 +1260,8 @@ select:hover {
     
     }
   </style>
-</head>
-<body>
+<title>Quản lý Đơn hàng Pizza</title>
+
   <!-- LOGIN SCREEN -->
   <div class="login-screen" id="loginScreen">
     <div class="login-box">
@@ -1368,7 +1363,7 @@ select:hover {
     <p style="color: #777; margin-top: 10px;">Bạn không có quyền xem báo cáo</p>
   </div>
   <h2>📈 Báo Cáo Hôm Nay</h2>
-<div id="reportContainer">
+<body id="reportContainer">
   <div class="report-section">
     <div class="category-header" onclick="toggleReportSection('revenue')">
       <span>📊 Doanh Thu</span>
@@ -1545,8 +1540,10 @@ select:hover {
     <div id="orderHistory"></div>
   </div>
 </div>
+</body>
 
-
+{% endblock %}
+  {% block scripts %}
   <script>
     const menuData = {
             'Pizza': [
@@ -3321,6 +3318,7 @@ window.addEventListener('resize', () => {
     renderOrders();
   }
 });
+
   </script>
-</body>
-</html>
+
+{% endblock %}

@@ -1,8 +1,5 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base.html" %}
+
   <title>Đang kết nối...</title>
   <style>
     body {
@@ -114,7 +111,9 @@
       display: inline-block;
     }
   </style>
-</head>
+  <script src="./static/js/supabase.js"></script>
+  <script src="./static/js/bcrypt.js"></script>
+
 <body>
   <div class="loading-box">
     <div class="icon">🍕</div>
@@ -129,7 +128,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+{% block scripts %}
   <script>
     const SUPABASE_URL = 'https://mhmvtywqtaqikaubhhmf.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1obXZ0eXdxdGFxaWthdWJoaG1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNDA4MTMsImV4cCI6MjA3ODYxNjgxM30.VDRLH8sTCkoZfJes3VJfHJhXsaCla9PkM2WcPL5T0Ds';
@@ -268,5 +267,5 @@
     createSession();
 });
   </script>
-</body>
-</html>
+
+{% endblock %}

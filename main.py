@@ -6,7 +6,7 @@ from loguru import logger
 from datetime import datetime
 import os
 
-logger.add(f'/tmp/logs/{datetime.now().strftime("%Y-%m-%d")}.log',
+logger.add(f'{datetime.now().strftime("%Y-%m-%d")}.log',
            backtrace=True,
            diagnose=True,
            colorize=True,
