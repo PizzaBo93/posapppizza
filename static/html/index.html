@@ -159,8 +159,10 @@
 
     async function createSession() {
       const urlParams = new URLSearchParams(window.location.search);
-      const store = urlParams.get('store');
-      const table = urlParams.get('table');
+      //const store = urlParams.get('store');
+      //const table = urlParams.get('table');
+      store = 'NH'
+      table = '2'
 
       // Validate params
       if (!store || !table) {
