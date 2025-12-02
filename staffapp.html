@@ -1548,113 +1548,13 @@ select:hover {
   
 
   <script>
-    const menuData = {
-            'Pizza': [
-            { id: 'p1', name: 'Bò (Size S)', price: 39000 },
-            { id: 'p2', name: 'Phô mai (Size S)', price: 39000 },
-            { id: 'p3', name: 'Gà teriyaki (Size S)', price: 39000 },
-            { id: 'p4', name: 'Xúc xích heo (Size S)', price: 39000 },
-            { id: 'p5', name: 'Cá ngừ (Size S)', price: 39000 },
-            { id: 'p6', name: 'Ba rọi xông khói (Size S)', price: 39000 },
-
-            { id: 'p7', name: 'Bò (Size L)', price: 89000 },
-            { id: 'p8', name: 'Phô mai (Size L)', price: 89000 },
-            { id: 'p9', name: 'Gà teriyaki (Size L)', price: 89000 },
-            { id: 'p10', name: 'Hải sản (Size L)', price: 89000 },
-            { id: 'p11', name: 'Xúc xích heo (Size L)', price: 89000 },
-            { id: 'p12', name: 'Pizza nấm rau củ (Size L)', price: 89000 },
-            { id: 'p13', name: 'Xúc xích Đức (Size L)', price: 89000 },
-            { id: 'p14', name: 'Cá ngừ (Size L)', price: 89000 },
-            { id: 'p15', name: 'Ba rọi xông khói (Size L)', price: 89000 },
-            { id: 'p16', name: 'Salami (Size L)', price: 109000 },
-            { id: 'p17', name: 'Phô mai tươi (Size L)', price: 99000 },
-            { id: 'p18', name: 'Meat Lover (Size L)', price: 109000 },
-            { id: 'p19', name: 'Tôm thanh cua (Size L)', price: 99000 },
-            { id: 'p20', name: 'Khô Gà - Lạp Xưởng (Size L)', price: 99000 },
-            { id: 'p21', name: 'Thập Cẩm (Size L)', price: 109000 },
-            { id: 'p22', name: 'Bò sốt cay (Size L)', price: 109000 },
-            { id: 'p23', name: 'Hải sản đặc biệt (Size L)', price: 99000 }
-        ],
-
-        'Món Ăn Nhẹ': [
-            { id: 's1', name: 'Gà Sốt Cay', price: 29000 },
-            { id: 's2', name: 'Khoai tây chiên (nhỏ)', price: 15000 },
-            { id: 's3', name: 'Khoai tây chiên (lớn)', price: 25000 },
-            { id: 's4', name: 'Tok Lắc Phô Mai', price: 15000 },
-            { id: 's5', name: 'Bánh Mì Bơ Tỏi', price: 15000 },
-            { id: 's6', name: 'Gà lắc phô mai cay (nhỏ)', price: 25000 },
-            { id: 's7', name: 'Gà lắc phô mai cay (lớn)', price: 45000 },
-            { id: 's8', name: 'Gà rán chiên giòn (nhỏ)', price: 25000 },
-            { id: 's9', name: 'Gà rán chiên giòn (lớn)', price: 30000 },
-            { id: 's10', name: 'Mì Ý đút lò', price: 59000 },
-            { id: 's11', name: 'Mì Ý sốt bò bằm', price: 39000 },
-            { id: 's12', name: 'Salad Cá Ngừ', price: 39000 },
-            { id: 's13', name: 'Salad dầu giấm', price: 29000 },
-            { id: 's14', name: 'Bánh mì phô mai', price: 25000 },
-            { id: 's15', name: 'Bắp Phô Mai', price: 29000 }
-        ],
-
-        'Nước': [
-            { id: 'd1', name: 'Nước ngọt (ly)', price: 9000 },
-            { id: 'd2', name: 'Nước ngọt (lon)', price: 15000 },
-            { id: 'd3', name: 'Nước suối', price: 9000 },
-            { id: 'd4', name: 'Local Beer', price: 15000 },
-            { id: 'd5', name: 'Đá me hạt mềm', price: 15000 },
-            { id: 'd6', name: 'Trà Chanh', price: 15000 },
-            { id: 'd7', name: 'Trà Đào', price: 20000 },
-            { id: 'd8', name: 'Trà sữa Thái', price: 20000 }
-        ],
-
-      'Combo': [
-            { id: 'c1', name: 'Combo 1 (1 Pizza bất kỳ + 1 gà lắc phô mai cay + 2 nước ngọt)', price: 119000 },
-
-            { id: 'c2', name: 'Combo 2 (1 Pizza bất kỳ + 3 gà rán + 3 nước ngọt)', price: 179000 },
-
-            { id: 'c3', name: 'Combo 3 (2 Pizza bất kỳ + 1 gà lắc phô mai cay + 1 khoai tây chiên + 4 nước ngọt)', price: 229000 },
-
-            { id: 'c4', name: 'Combo 4 (1 Pizza bất kỳ + 1 salad cá ngừ + 2 nước ngọt)', price: 139000 },
-
-            { id: 'c5', name: 'Combo 5 (1 Pizza bất kỳ + 1 salad cá ngừ + 2 mì Ý + 4 nước ngọt)', price: 229000 },
-
-            { id: 'c6', name: 'Combo 6 (1 Pizza bất kỳ + 1 salad cá ngừ + 1 mì Ý + 2 nước ngọt)', price: 159000 },
-
-            { id: 'c7', name: 'Combo 7 (1 Pizza size S bất kỳ + 1 nước ngọt)', price: 45000 },
-
-            { id: 'c8', name: 'Combo 8 (1 Pizza size S bất kỳ + 1 khoai tây chiên + 1 nước ngọt)', price: 59000 }
-            ],
-
-     'Add - on': [
-    { id: 'a1', name: 'Phô mai thêm S', price: 10000 },
-    { id: 'a2', name: 'Phô mai thêm L', price: 20000 },
-
-    { id: 'a3', name: 'Bò thêm', price: 15000 },
-    { id: 'a12', name: 'Gà thêm', price: 15000 },
-    { id: 'a13', name: 'Xúc xích Đức thêm', price: 15000 },
-
-    { id: 'a4', name: 'Xúc Xích Heo thêm', price: 10000 },
-    { id: 'a5', name: 'Ba Rọi Xông Khói thêm', price: 10000 },
-
-    { id: 'a6', name: 'Bắp thêm', price: 10000 },
-    { id: 'a7', name: 'Bông Cải Xanh thêm', price: 10000 },
-
-    { id: 'a8', name: 'Cá Ngừ thêm', price: 15000 },
-    { id: 'a9', name: 'Thanh Cua thêm', price: 15000 },
-
-    { id: 'a10', name: 'Nấm thêm', price: 10000 },
-    { id: 'a11', name: 'Thơm thêm', price: 10000 },
-     {id: 'a14', name: 'đổi bánh đặc biệt', price: 10000 },
-      {id: 'a15', name: 'đổi trà đào', price: 10000 },
-
-]
-
-    };
-
+    
     // Thêm vào đầu phần <script>, sau khai báo menuData
     const SUPABASE_URL = 'https://mhmvtywqtaqikaubhhmf.supabase.co'; // Thay bằng URL của bạn
     const SUPABASE_ANON_KEY = 'sb_publishable_lTDNdWmRZaO2VF-oCs2zvg_7NSzJpCa'; // Thay bằng anon key của bạn
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-
+    let menuData = {}; // Sẽ load từ Supabase  
     let currentStore = '';
     let orders = [];
     let mergedOrders = [];
@@ -1803,8 +1703,42 @@ await initMainApp();
   }
 }
 
+// ⭐ THÊM HÀM MỚI:
+async function loadMenu() {
+  try {
+    const { data, error } = await supabase
+      .from('menu')
+      .select('*')
+      .order('category', { ascending: true });
+
+    if (error) throw error;
+
+    // Chuyển đổi từ flat array sang grouped object
+    menuData = data.reduce((acc, item) => {
+      if (!acc[item.category]) {
+        acc[item.category] = [];
+      }
+      acc[item.category].push({
+        id: item.id,
+        name: item.name,
+        price: item.price
+      });
+      return acc;
+    }, {});
+
+    console.log('✅ Menu loaded:', menuData);
+
+  } catch (error) {
+    console.error('❌ Lỗi load menu:', error);
+    alert('Không thể tải menu. Vui lòng tải lại trang!');
+  }
+}
+
+
 // 🎨 KHỞI TẠO GIAO DIỆN CHÍNH
 async function initMainApp() {
+  await loadMenu();
+
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
 
@@ -2084,18 +2018,18 @@ function renderOrderForm() {
 }
 
     // ♻️ KHÔI PHỤC SESSION
-    (function checkSession() {
+   (function checkSession() {
       const savedUser = sessionStorage.getItem('pizza_user');
       if (savedUser) {
         try {
           currentUser = JSON.parse(savedUser);
           permissions = ROLE_PERMISSIONS[currentUser.role];
-          initMainApp();
+          initMainApp(); // ← Hàm này đã có loadMenu() rồi
         } catch (error) {
           sessionStorage.removeItem('pizza_user');
         }
       }
-        })();
+    })();
 
     
 
