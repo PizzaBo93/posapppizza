@@ -1,10 +1,6 @@
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
-class UserOut(BaseModel):
-    id: int
+class Login(BaseModel):
     username: str
-    full_name: Optional[str]
-    store_code: Optional[str]
-    role: str
-    permissions: Dict[str, bool]
+    password: str

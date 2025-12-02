@@ -1,16 +1,18 @@
+import os
+import time
+from datetime import datetime
+from typing import Optional
+import httpx
+import jwt
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Response, Cookie, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from dotenv import load_dotenv
 from loguru import logger
-from datetime import datetime
-import os
-import time
-import jwt
-import httpx
-from typing import Optional, List, Dict, Any
 from starlette.middleware.cors import CORSMiddleware
-from model import login, user, order
+from model.login import Login
+from model.order import Order
+from model.user import User
 
 load_dotenv('.env', verbose=True)
 
@@ -21,8 +23,6 @@ logger.add(f'{datetime.now().strftime("%Y-%m-%d")}.log',
            level='DEBUG',
            compression='zip',
            rotation='1 day')
-
-
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
@@ -91,8 +91,8 @@ templates = Jinja2Templates(directory="static/html")
 
 
 # ---------- Auth ----------
-@app.post("/api/login", response_model=UserOut)
-async def login(payload: LoginIn, response: Response):
+@app.post("/api/login", response_model=User)
+async def login(payload: Login, response: Response):
     """
     Verify credentials using Supabase RPC 'verify_staff_login' (server-side).
     Sets HttpOnly cookie with JWT.
@@ -144,7 +144,7 @@ async def get_orders(user = Depends(get_current_user)):
     return r.json()
 
 @app.post("/api/orders")
-async def create_order(payload: OrderIn, user = Depends(get_current_user)):
+async def create_order(payload: Order, user = Depends(get_current_user)):
     # validate minimum structure on server
     if not payload.items or payload.total <= 0:
         raise HTTPException(status_code=400, detail="Invalid order")
