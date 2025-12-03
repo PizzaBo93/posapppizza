@@ -200,23 +200,7 @@ select:hover {
       margin-bottom: 20px;
     }
 
-    .menu-items {
-      margin-top: 20px;
-    }
-
-    .menu-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      margin-bottom: 10px;
-    }
-
-    .menu-item:hover {
-      background: #f9f9f9;
-    }
+   
 
     .quantity-control {
       display: flex;
@@ -366,17 +350,31 @@ select:hover {
     }
 
     .category-items {
-      display: none;
-      background: white;
-      border: 2px solid #e74c3c;
-      border-top: none;
-      border-radius: 0 0 8px 8px;
-      padding: 10px;
-    }
+  display: none;
+  background: white;
+  border: 2px solid #e74c3c;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 10px;
+}
 
-    .category-items.show {
-      display: block;
-    }
+.category-items.show {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+}
+
+@media (max-width: 1024px) {
+  .category-items.show {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .category-items.show {
+    grid-template-columns: 1fr !important;
+  }
+}
 
     .category-icon {
       font-size: 20px;
@@ -1259,7 +1257,8 @@ select:hover {
 .payment-transfer { background: #3498db; }
 .payment-grab { background: #00b14f; }
 .payment-shopee { background: #ee4d2d; }
-    
+
+
     }
   </style>
 </head>
@@ -1713,27 +1712,32 @@ async function loadMenu() {
 
     if (error) throw error;
 
-    // Chuyển đổi từ flat array sang grouped object
+    // ⭐ CHUYỂN ĐỔI VÀ CHỌN GIÁ THEO STORE
     menuData = data.reduce((acc, item) => {
       if (!acc[item.category]) {
         acc[item.category] = [];
       }
+      
+      // ⭐ CHỌN GIÁ: Nếu PY → dùng price_py, còn lại → dùng price
+      const finalPrice = (currentStore === 'PY' && item.price_py) 
+        ? item.price_py 
+        : item.price;
+      
       acc[item.category].push({
         id: item.id,
         name: item.name,
-        price: item.price
+        price: finalPrice  // ← Giá đã chọn đúng chi nhánh
       });
       return acc;
     }, {});
 
-    console.log('✅ Menu loaded:', menuData);
+    console.log('✅ Menu loaded for', currentStore, ':', menuData);
 
   } catch (error) {
     console.error('❌ Lỗi load menu:', error);
     alert('Không thể tải menu. Vui lòng tải lại trang!');
   }
 }
-
 
 // 🎨 KHỞI TẠO GIAO DIỆN CHÍNH
 async function initMainApp() {
@@ -2040,20 +2044,29 @@ function renderOrderForm() {
     
 
     function toggleCategory(category) {
-      const items = document.getElementById(`items-${category}`);
-      const icon = document.getElementById(`icon-${category}`);
-      const header = document.getElementById(`header-${category}`);
-      
-      items.classList.toggle('show');
-      icon.classList.toggle('rotate');
-      header.classList.toggle('active');
-    }
+  const items = document.getElementById(`items-${category}`);
+  const icon = document.getElementById(`icon-${category}`);
+  const header = document.getElementById(`header-${category}`);
+  
+  if (items.classList.contains('show')) {
+    items.classList.remove('show');
+    items.style.display = 'none';
+  } else {
+    items.classList.add('show');
+    items.style.display = 'grid';
+    items.style.gridTemplateColumns = 'repeat(4, 1fr)';  // ← ĐỔI 3 THÀNH 4
+    items.style.gap = '10px';
+  }
+  
+  icon.classList.toggle('rotate');
+  header.classList.toggle('active');
+}
 
     function searchMenu() {
       renderMenu();
     }
 
-    function renderMenu() {
+   function renderMenu() {
   const container = document.getElementById('menuCategories');
   const searchTerm = document.getElementById('searchMenu')?.value.toLowerCase() || '';
   
@@ -2071,10 +2084,11 @@ function renderOrderForm() {
         </div>
         <div class="quantity-control">
           <button class="qty-btn" onclick="updateCart('${item.id}', -1)">-</button>
-          <span style="min-width: 30px; text-align: center; font-weight: 600;" data-item-id="${item.id}">${cart[item.id] || 0}</span>          <button class="qty-btn" onclick="updateCart('${item.id}', 1)">+</button>
+          <span style="min-width: 30px; text-align: center; font-weight: 600;" data-item-id="${item.id}">${cart[item.id] || 0}</span>
+          <button class="qty-btn" onclick="updateCart('${item.id}', 1)">+</button>
         </div>
       </div>
-    `).join('');
+    `).join('');  // ← THÊM .join('') VÀO ĐÂY
 
     if (items === '') return ''; // Ẩn category nếu không có món
 
@@ -2084,13 +2098,14 @@ function renderOrderForm() {
           <span>📁 ${category}</span>
           <span class="category-icon" id="icon-${category}">▼</span>
         </div>
-        <div class="category-items ${searchTerm ? 'show' : ''}" id="items-${category}">
+       <div class="category-items ${searchTerm ? 'show' : ''}" id="items-${category}" style="${searchTerm ? 'display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 10px !important;' : ''}">
           ${items}
         </div>
       </div>
     `;
   }).join('');
 }
+
  function updateCart(itemId, change) {
   if (!cart[itemId]) cart[itemId] = 0;
   cart[itemId] += change;
@@ -2786,42 +2801,52 @@ function resetCashRegister() {
       }
     }
 
-   async function loadData() {
+ async function loadData() {
   try {
     const today = new Date().toISOString().split('T')[0];
     
-    const { data: reportData, error } = await supabase
-      .from('daily_reports')
-      .select('*')
-      .eq('store_code', currentStore)
-      .eq('user_id', currentUser.id)
-      .eq('report_date', today)
-      .single();
+    console.log('🔍 Loading data for:', { store: currentStore, user: currentUser.id, date: today });
+    
+    // ⭐ LOAD DAILY REPORT - XỬ LÝ LỖI 406
+    let reportData = null;
+    try {
+      const { data, error } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .eq('store_code', currentStore)
+        .eq('user_id', currentUser.id)
+        .eq('report_date', today)
+        .maybeSingle(); // ← Thay .single() bằng .maybeSingle()
 
-    if (reportData && !error) {
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+        console.warn('⚠️ Error loading report:', error);
+      } else {
+        reportData = data;
+      }
+    } catch (err) {
+      console.warn('⚠️ Report query failed:', err);
+    }
+
+    if (reportData) {
       dailyReport = {
-        revenue: reportData.revenue,
-        items: reportData.items_sold,
-        cash: reportData.cash_register,
+        revenue: reportData.revenue || { total: 0, cash: 0, transfer: 0, grab: 0, shopee: 0 },
+        items: reportData.items_sold || {},
+        cash: reportData.cash_register || { start: 0, collected: 0, otherIncome: 0, expense: 0 },
         pizzaBases: reportData.pizza_bases || { S: 0, L: 0 }
       };
-      // Đảm bảo có collected
-  if (!dailyReport.cash.collected) {
-    dailyReport.cash.collected = 0;
-  }
-  if (!dailyReport.revenue.cash) {
-    dailyReport.revenue.cash = 0;
-  }
+      console.log('✅ Report loaded:', dailyReport);
     } else {
+      // Tạo report mặc định
       dailyReport = {
         revenue: { total: 0, cash: 0, transfer: 0, grab: 0, shopee: 0 },
         items: {},
-        cash: { start: 0, current: 0 }
+        cash: { start: 0, collected: 0, otherIncome: 0, expense: 0 },
+        pizzaBases: { S: 0, L: 0 }
       };
+      console.log('ℹ️ No report found, using default');
     }
 
-    // Load tất cả đơn pending của quán này (bao gồm cả QR orders)
- // ⭐ THAY ĐỔI PHẦN NÀY - Dùng lại biến today đã khai báo ở trên
+    // ⭐ LOAD ORDERS
     const { data: ordersData, error: ordersError } = await supabase
       .from('orders')
       .select('*')
@@ -2829,14 +2854,18 @@ function resetCashRegister() {
       .or(`status.eq.pending,and(status.eq.paid,created_at.gte.${today})`)
       .order('created_at', { ascending: false });
 
-    if (ordersData && !ordersError) {
-      orders = ordersData;
+    if (ordersError) {
+      console.error('❌ Orders error:', ordersError);
+    } else {
+      orders = ordersData || [];
+      console.log('✅ Loaded', orders.length, 'orders');
     }
 
     subscribeToOrders();
 
   } catch (error) {
-    console.error('Lỗi load dữ liệu:', error);
+    console.error('🔥 Load data error:', error);
+    alert('Có lỗi khi tải dữ liệu. Vui lòng thử lại!');
   }
 }
 
