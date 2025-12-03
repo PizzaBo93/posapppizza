@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Đặt Món - Pizza</title>
+  <title>Hóa Đơn - Pizza</title>
   <style>
     * {
       margin: 0;
@@ -564,18 +564,18 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>🍕 Pizza Menu</h1>
+      <h1>🍕 Hóa Đơn của Bạn</h1>
       <div class="table-info" id="tableInfo">Đang tải...</div>
       <div class="store-badge" id="storeBadge"></div>
     </div>
 
-    <div class="tabs">
+    <div class="tabs" style="display: none;">
       <div class="tab active" onclick="switchTab(0)">📋 Menu</div>
       <div class="tab" onclick="switchTab(1)">🛒 Đơn của tôi</div>
     </div>
 
    <!-- Tab Menu -->
-    <div class="tab-content active" id="tabMenu">
+    <div class="tab-content" id="tabMenu" style="display: none;">
       <!-- Search Box -->
       <div class="search-container">
         <input type="text" id="searchInput" class="search-input" placeholder="🔍 Tìm món ăn..." oninput="searchMenu()">
@@ -586,20 +586,20 @@
     </div>
 
     <!-- Tab Current Order -->
-    <div class="tab-content" id="tabOrder">
-      <div id="currentOrderContent"></div>
+    <div class="tab-content active" id="tabOrder" style="display: block;">
+  <div id="currentOrderContent"></div>
     </div>
   </div>
 
   <!-- Cart Float Button -->
-  <div class="cart-float" id="cartFloat" onclick="openCart()">
+  <div class="cart-float" id="cartFloat" onclick="openCart()" style="display: none !important;">
     <span>🛒 Giỏ hàng</span>
     <span class="cart-badge" id="cartCount">0</span>
     <span id="cartTotal">0đ</span>
   </div>
 
   <!-- Cart Modal -->
-  <div id="cartModal" class="modal">
+  <div id="cartModal" class="modal" style="display: none !important;">
     <div class="modal-content">
       <div class="modal-header">
         <h2>🛒 Giỏ Hàng</h2>
@@ -728,7 +728,6 @@ async function init() {
   document.getElementById('tableInfo').textContent = `🍽️ Bàn ${tableNumber}`;
   document.getElementById('storeBadge').textContent = storeNames[storeCode] || storeCode;
 
-  renderMenu();
   loadCurrentOrders();
   subscribeToOrders();
 }
