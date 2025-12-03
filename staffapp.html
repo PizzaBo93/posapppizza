@@ -1685,14 +1685,14 @@ let currentUser = null;
 
     permissions = ROLE_PERMISSIONS[currentUser.role];
 
-    // Lưu session
-    sessionStorage.setItem('pizza_user', JSON.stringify(currentUser));
+  // ⭐ LƯU VÀO LOCALSTORAGE THAY VÌ SESSIONSTORAGE
+    localStorage.setItem('pizza_user', JSON.stringify(currentUser));
+    localStorage.setItem('pizza_auto_login', 'true');
 
     console.log('✅ Login success:', currentUser);
 
     // Chuyển sang màn hình chính
-    // Chuyển sang màn hình chính
-await initMainApp();
+    await initMainApp();
 
   } catch (error) {
     console.error('🔥 Login error:', error);
@@ -1793,7 +1793,7 @@ if (permissions.canViewReports) {
 // Thay thế phần cuối hàm initMainApp() từ "// Chuyển đến tab đầu tiên được phép" trở đi
 
 // ⭐ KHÔI PHỤC TAB TRƯỚC ĐÓ HOẶC CHUYỂN ĐẾN TAB MẶC ĐỊNH
-const savedTab = sessionStorage.getItem('pizza_current_tab');
+const savedTab = localStorage.getItem('pizza_current_tab');
 
 if (savedTab) {
   // Kiểm tra xem có quyền truy cập tab đã lưu không
@@ -1975,8 +1975,8 @@ function renderOrderForm() {
     return;
   }
 
-  // ⭐ LƯU TAB HIỆN TẠI VÀO SESSIONSTORAGE
-  sessionStorage.setItem('pizza_current_tab', tabName);
+  // ⭐ LƯU TAB HIỆN TẠI VÀO LOCALSTORAGE THAY VÌ SESSIONSTORAGE
+  localStorage.setItem('pizza_current_tab', tabName);
 
   // Xóa active
   document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
@@ -1998,7 +1998,7 @@ function renderOrderForm() {
     }
 
    // 🚪 ĐĂNG XUẤT
-    function logout() {
+  function logout() {
   if (confirm('Xác nhận đăng xuất?')) {
     // Hủy subscription trước khi logout
     if (ordersSubscription) {
@@ -2006,7 +2006,10 @@ function renderOrderForm() {
       ordersSubscription = null;
     }
     
-    sessionStorage.removeItem('pizza_user');
+    // ⭐ XÓA TỪ LOCALSTORAGE
+    localStorage.removeItem('pizza_user');
+    localStorage.removeItem('pizza_auto_login');
+    localStorage.removeItem('pizza_current_tab');
     currentUser = null;
     permissions = {};
     
@@ -2017,20 +2020,23 @@ function renderOrderForm() {
   }
 }
 
-    // ♻️ KHÔI PHỤC SESSION
+  // ♻️ KHÔI PHỤC SESSION TỰ ĐỘNG
    (function checkSession() {
-      const savedUser = sessionStorage.getItem('pizza_user');
-      if (savedUser) {
+      const savedUser = localStorage.getItem('pizza_user');
+      const autoLogin = localStorage.getItem('pizza_auto_login');
+      
+      if (savedUser && autoLogin === 'true') {
         try {
           currentUser = JSON.parse(savedUser);
           permissions = ROLE_PERMISSIONS[currentUser.role];
           initMainApp(); // ← Hàm này đã có loadMenu() rồi
         } catch (error) {
-          sessionStorage.removeItem('pizza_user');
+          console.error('❌ Lỗi khôi phục session:', error);
+          localStorage.removeItem('pizza_user');
+          localStorage.removeItem('pizza_auto_login');
         }
       }
     })();
-
     
 
     function toggleCategory(category) {
@@ -2476,7 +2482,10 @@ ${isEditMode ? `
 ` : `
   <div class="payment-buttons" style="margin-top: 15px;">
     ${permissions.canEditOrder ? `<button class="edit-order-btn" onclick="enableEditMode('${order.id}')">✏️ Sửa đơn</button>` : ''}
-    ${permissions.canPayOrder ? `<button class="payment-btn" style="background: #9b59b6; color: white; flex: 1;" onclick="showBillPreview(${order.id})">👁️ Xem hóa đơn</button>` : ''}
+   ${permissions.canPayOrder ? `
+  <button class="payment-btn" style="background: #9b59b6; color: white; flex: 1;" onclick="showBillPreview(${order.id})">👁️ Xem hóa đơn</button>
+  <button class="payment-btn" style="background: #34495e; color: white; flex: 1;" onclick="printBill(${order.id})">🖨️ In bill</button>
+` : ''}
   </div>
 `}
       </div>
@@ -2889,7 +2898,8 @@ function showBillPreview(orderId) {
           <button onclick="payOrder(${order.id}, 'transfer'); closeBillPage();" style="background: #3498db; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">🏦 Chuyển khoản</button>
           <button onclick="payOrder(${order.id}, 'grab'); closeBillPage();" style="background: #00b14f; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">🛵 Grab</button>
           <button onclick="payOrder(${order.id}, 'shopee'); closeBillPage();" style="background: #ee4d2d; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">🛒 Shopee</button>
-        </div>
+          <button onclick="printBill(${order.id})" style="background: #34495e; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; grid-column: 1 / -1;">🖨️ In hóa đơn</button>
+          </div>
       </div>
     </div>
   `;
@@ -3277,6 +3287,190 @@ window.addEventListener('resize', () => {
     renderOrders();
   }
 });
+
+
+// ================== SUNMI PRINTER API ==================
+
+function isSunmiDevice() {
+  return /sunmi/i.test(navigator.userAgent) || window.sunmi !== undefined;
+}
+
+async function printBillSunmi(order) {
+  try {
+    const typeLabels = {
+      'dine': 'An tai quan',
+      'takeout': 'Mang ve',
+      'grab': 'Grab',
+      'shopee': 'Shopee'
+    };
+
+    let printContent = '';
+    printContent += '<CB>PIZZA RESTAURANT</CB><BR>';
+    printContent += '<CB>================================</CB><BR>';
+    printContent += '<BR>';
+    printContent += '<B>Loai don:</B> ' + typeLabels[order.order_type] + '<BR>';
+    
+    if (order.table_number) {
+      printContent += '<B>Ban so:</B> ' + order.table_number + '<BR>';
+    }
+    
+    printContent += '<B>Thoi gian:</B> ' + new Date(order.created_at).toLocaleString('vi-VN') + '<BR>';
+    printContent += '<BR>';
+    printContent += '================================<BR>';
+    
+    Object.keys(order.items).forEach(itemId => {
+      const item = findItemById(itemId);
+      if (!item) return;
+      const qty = order.items[itemId];
+      const subtotal = item.price * qty;
+      
+      printContent += '<B>' + item.name + '</B><BR>';
+      printContent += '  ' + formatMoney(item.price) + ' x ' + qty + ' = ' + formatMoney(subtotal) + '<BR>';
+    });
+    
+    printContent += '================================<BR>';
+    printContent += '<CB><B>TONG CONG: ' + formatMoney(order.total) + '</B></CB><BR>';
+    printContent += '<BR>';
+    
+    if (order.note) {
+      printContent += '<B>Ghi chu:</B> ' + order.note + '<BR>';
+      printContent += '<BR>';
+    }
+    
+    printContent += '<CB>Cam on quy khach!</CB><BR>';
+    printContent += '<CB>Hen gap lai!</CB><BR>';
+    printContent += '<BR><BR><BR>';
+
+    if (window.sunmi && window.sunmi.print) {
+      window.sunmi.print(printContent);
+    } else {
+      const printUrl = 'sunmi://print?content=' + encodeURIComponent(printContent);
+      window.location.href = printUrl;
+    }
+    
+    console.log('✅ Đã gửi lệnh in đến SUNMI printer');
+    return true;
+
+  } catch (error) {
+    console.error('❌ Lỗi in SUNMI:', error);
+    return false;
+  }
+}
+
+function printBillWeb(order) {
+  const typeLabels = {
+    'dine': 'An tai quan',
+    'takeout': 'Mang ve',
+    'grab': 'Grab',
+    'shopee': 'Shopee'
+  };
+
+  let itemsHtml = '';
+  Object.keys(order.items).forEach(itemId => {
+    const item = findItemById(itemId);
+    if (!item) return;
+    const qty = order.items[itemId];
+    const subtotal = item.price * qty;
+    
+    itemsHtml += '<tr>';
+    itemsHtml += '<td style="padding: 5px 0; border-bottom: 1px dashed #ddd;">';
+    itemsHtml += '<strong>' + item.name + '</strong><br>';
+    itemsHtml += '<small>' + formatMoney(item.price) + ' x ' + qty + '</small>';
+    itemsHtml += '</td>';
+    itemsHtml += '<td style="text-align: right; padding: 5px 0; border-bottom: 1px dashed #ddd;">';
+    itemsHtml += '<strong>' + formatMoney(subtotal) + '</strong>';
+    itemsHtml += '</td>';
+    itemsHtml += '</tr>';
+  });
+
+  const printWindow = window.open('', '_blank', 'width=300,height=600');
+  
+  let html = '<!DOCTYPE html><html><head>';
+  html += '<meta charset="UTF-8">';
+  html += '<title>Hoa don</title>';
+  html += '<style>';
+  html += '@page { size: 58mm auto; margin: 0; }';
+  html += '@media print { body { margin: 0; padding: 10px; }}';
+  html += 'body { font-family: "Courier New", monospace; width: 58mm; margin: 0 auto; padding: 10px; font-size: 12px; }';
+  html += '.header { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 10px; }';
+  html += '.divider { border-top: 2px dashed #000; margin: 10px 0; }';
+  html += 'table { width: 100%; border-collapse: collapse; }';
+  html += '.total { font-size: 18px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; border-top: 2px solid #000; border-bottom: 2px solid #000; }';
+  html += '.footer { text-align: center; margin-top: 15px; font-size: 11px; }';
+  html += '</style></head><body>';
+  html += '<div class="header">PIZZA RESTAURANT</div>';
+  html += '<div class="divider"></div>';
+  html += '<p style="margin: 5px 0;"><strong>Loai don:</strong> ' + typeLabels[order.order_type] + '</p>';
+  
+  if (order.table_number) {
+    html += '<p style="margin: 5px 0;"><strong>Ban so:</strong> ' + order.table_number + '</p>';
+  }
+  
+  html += '<p style="margin: 5px 0;"><strong>Thoi gian:</strong> ' + new Date(order.created_at).toLocaleString('vi-VN') + '</p>';
+  html += '<div class="divider"></div>';
+  html += '<table>' + itemsHtml + '</table>';
+  html += '<div class="total">TONG CONG<br>' + formatMoney(order.total) + '</div>';
+  
+  if (order.note) {
+    html += '<p style="margin: 10px 0; padding: 8px; background: #f0f0f0; border-radius: 4px;">';
+    html += '<strong>Ghi chu:</strong> ' + order.note + '</p>';
+  }
+  
+  html += '<div class="footer">Cam on quy khach!<br>Hen gap lai!</div>';
+  html += '<script>';
+  html += 'window.onload = function() {';
+html += '  setTimeout(function() {';
+html += '    window.print();';
+html += '    setTimeout(function() { window.close(); }, 500);';
+html += '  }, 500);';
+html += '};';
+html += '<\\/script>';
+html += '<\\/body><\\/html>';
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
+async function printBill(orderId) {
+  const order = orders.find(o => o.id == orderId);
+  if (!order) {
+    alert('Khong tim thay don hang!');
+    return;
+  }
+
+  const originalBtn = event.target;
+  const originalText = originalBtn.textContent;
+  originalBtn.textContent = 'Dang in...';
+  originalBtn.disabled = true;
+
+  try {
+    if (isSunmiDevice()) {
+      console.log('Phat hien thiet bi SUNMI, dang in...');
+      const success = await printBillSunmi(order);
+      
+      if (success) {
+        alert('Da gui lenh in! Kiem tra may in SUNMI.');
+      } else {
+        throw new Error('SUNMI print failed');
+      }
+    } else {
+      console.log('Su dung che do in web...');
+      printBillWeb(order);
+    }
+  } catch (error) {
+    console.error('Loi in:', error);
+    
+    if (confirm('Khong the in bang SUNMI. Su dung che do in web thay the?')) {
+      printBillWeb(order);
+    }
+  } finally {
+    setTimeout(function() {
+      originalBtn.textContent = originalText;
+      originalBtn.disabled = false;
+    }, 1000);
+  }
+}
+
   </script>
 </body>
 </html>
