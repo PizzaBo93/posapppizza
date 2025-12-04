@@ -1703,8 +1703,11 @@ let currentUser = null;
 }
 
 // ⭐ THÊM HÀM MỚI:
-async function loadMenu() {
+// ⭐ THAY THẾ HÀM loadMenu() - TỪ DÒNG ~400
+async function loadMenu(storeCode) {
   try {
+    console.log('🔄 Loading menu for store:', storeCode);
+    
     const { data, error } = await supabase
       .from('menu')
       .select('*')
@@ -1712,26 +1715,36 @@ async function loadMenu() {
 
     if (error) throw error;
 
+    if (!data || data.length === 0) {
+      console.warn('⚠️ No menu data found');
+      return;
+    }
+
     // ⭐ CHUYỂN ĐỔI VÀ CHỌN GIÁ THEO STORE
     menuData = data.reduce((acc, item) => {
       if (!acc[item.category]) {
         acc[item.category] = [];
       }
       
-      // ⭐ CHỌN GIÁ: Nếu PY → dùng price_py, còn lại → dùng price
-      const finalPrice = (currentStore === 'PY' && item.price_py) 
-        ? item.price_py 
-        : item.price;
+      // ⭐ LOGIC CHỌN GIÁ
+      let finalPrice;
+      if (storeCode === 'PY') {
+        // Chi nhánh Phú Yên: ưu tiên price_py
+        finalPrice = (item.price_py != null) ? item.price_py : item.price;
+      } else {
+        // Các chi nhánh khác: dùng price
+        finalPrice = item.price;
+      }
       
       acc[item.category].push({
         id: item.id,
         name: item.name,
-        price: finalPrice  // ← Giá đã chọn đúng chi nhánh
+        price: finalPrice
       });
       return acc;
     }, {});
 
-    console.log('✅ Menu loaded for', currentStore, ':', menuData);
+    console.log('✅ Menu loaded for', storeCode, '- Total items:', Object.keys(menuData).reduce((sum, cat) => sum + menuData[cat].length, 0));
 
   } catch (error) {
     console.error('❌ Lỗi load menu:', error);
@@ -1739,9 +1752,15 @@ async function loadMenu() {
   }
 }
 
-// 🎨 KHỞI TẠO GIAO DIỆN CHÍNH
+// ⭐ THAY THẾ HÀM initMainApp() - TỪ DÒNG ~450
 async function initMainApp() {
-  await loadMenu();
+  // ⭐ SET STORE TRƯỚC KHI LOAD MENU
+  currentStore = currentUser.store_code;
+  
+  console.log('🚀 Initializing app for:', currentUser.full_name, '- Store:', currentStore);
+  
+  // ⭐ LOAD MENU VỚI STORE CODE
+  await loadMenu(currentStore);
 
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
@@ -1767,9 +1786,6 @@ async function initMainApp() {
   document.getElementById('storeBadge').textContent = storeNames[currentUser.store_code];
   document.getElementById('userDisplay').textContent = currentUser.full_name;
 
-  // Lưu store hiện tại
-  currentStore = currentUser.store_code;
-
   // Ẩn/hiện tab theo quyền
   setupPermissions();
 
@@ -1778,56 +1794,51 @@ async function initMainApp() {
   requestNotificationPermission();
   
   // ⭐ LUÔN RENDER FORM VÀ MENU NẾU CÓ QUYỀN
-if (permissions.canCreateOrder) {
-  renderOrderForm();
-  renderMenu();
-  updateOrderSummary();
-}
+  if (permissions.canCreateOrder) {
+    renderOrderForm();
+    renderMenu();
+    updateOrderSummary();
+  }
 
-// ⭐ LUÔN RENDER ORDERS NẾU CÓ QUYỀN XEM
-if (permissions.canViewOrders) {
-  renderOrders();
-}
+  // ⭐ LUÔN RENDER ORDERS NẾU CÓ QUYỀN XEM
+  if (permissions.canViewOrders) {
+    renderOrders();
+  }
 
-// ⭐ CẬP NHẬT REPORTS NẾU CÓ QUYỀN
-if (permissions.canViewReports) {
-  updateReports();
-}
+  // ⭐ CẬP NHẬT REPORTS NẾU CÓ QUYỀN
+  if (permissions.canViewReports) {
+    updateReports();
+  }
 
-// Thay thế phần cuối hàm initMainApp() từ "// Chuyển đến tab đầu tiên được phép" trở đi
+  // ⭐ KHÔI PHỤC TAB TRƯỚC ĐÓ HOẶC CHUYỂN ĐẾN TAB MẶC ĐỊNH
+  const savedTab = localStorage.getItem('pizza_current_tab');
 
-// ⭐ KHÔI PHỤC TAB TRƯỚC ĐÓ HOẶC CHUYỂN ĐẾN TAB MẶC ĐỊNH
-const savedTab = localStorage.getItem('pizza_current_tab');
-
-if (savedTab) {
-  // Kiểm tra xem có quyền truy cập tab đã lưu không
-  if ((savedTab === 'order' && permissions.canCreateOrder) ||
-      (savedTab === 'current' && permissions.canViewOrders) ||
-      (savedTab === 'report' && permissions.canViewReports)) {
-    switchTab(savedTab);
+  if (savedTab) {
+    if ((savedTab === 'order' && permissions.canCreateOrder) ||
+        (savedTab === 'current' && permissions.canViewOrders) ||
+        (savedTab === 'report' && permissions.canViewReports)) {
+      switchTab(savedTab);
+    } else {
+      if (permissions.canCreateOrder) {
+        switchTab('order');
+      } else if (permissions.canViewOrders) {
+        switchTab('current');
+      } else if (permissions.canViewReports) {
+        switchTab('report');
+      }
+    }
   } else {
-    // Nếu không có quyền, chuyển đến tab được phép đầu tiên
-    if (permissions.canCreateOrder) {
-      switchTab('order');
-    } else if (permissions.canViewOrders) {
+    if (permissions.canViewOrders) {
       switchTab('current');
+    } else if (permissions.canCreateOrder) {
+      switchTab('order');
     } else if (permissions.canViewReports) {
       switchTab('report');
+    } else {
+      alert('⚠️ Tài khoản của bạn chưa được cấp quyền!\n\nVui lòng liên hệ quản lý.');
+      logout();
     }
   }
-} else {
-  // Lần đầu đăng nhập - ưu tiên tab "Đơn Hiện Tại" nếu có quyền
-  if (permissions.canViewOrders) {
-    switchTab('current');
-  } else if (permissions.canCreateOrder) {
-    switchTab('order');
-  } else if (permissions.canViewReports) {
-    switchTab('report');
-  } else {
-    alert('⚠️ Tài khoản của bạn chưa được cấp quyền!\n\nVui lòng liên hệ quản lý.');
-    logout();
-  }
-}
 }
 
 // 🔐 THIẾT LẬP QUYỀN TRUY CẬP
@@ -2044,23 +2055,14 @@ function renderOrderForm() {
     
 
     function toggleCategory(category) {
-  const items = document.getElementById(`items-${category}`);
-  const icon = document.getElementById(`icon-${category}`);
-  const header = document.getElementById(`header-${category}`);
-  
-  if (items.classList.contains('show')) {
-    items.classList.remove('show');
-    items.style.display = 'none';
-  } else {
-    items.classList.add('show');
-    items.style.display = 'grid';
-    items.style.gridTemplateColumns = 'repeat(4, 1fr)';  // ← ĐỔI 3 THÀNH 4
-    items.style.gap = '10px';
-  }
-  
-  icon.classList.toggle('rotate');
-  header.classList.toggle('active');
-}
+      const items = document.getElementById(`items-${category}`);
+      const icon = document.getElementById(`icon-${category}`);
+      const header = document.getElementById(`header-${category}`);
+      
+      items.classList.toggle('show');
+      icon.classList.toggle('rotate');
+      header.classList.toggle('active');
+    }
 
     function searchMenu() {
       renderMenu();
