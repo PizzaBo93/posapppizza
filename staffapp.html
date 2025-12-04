@@ -105,7 +105,6 @@
             gap: 20px;
             padding: 20px;
             width: 100%;
-            flex-direction: column;
         }
 
         .menu-section {
@@ -115,24 +114,19 @@
             padding: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow-y: auto;
-            width: 100%;
         }
 
         .order-info {
-         background: #ecf0f1;
+            background: #ecf0f1;
             padding: 16px;
             border-radius: 8px;
             margin-bottom: 20px;
-            display: grid; /* Thêm dòng này */
-            grid-template-columns: 1fr 1fr; /* Thêm dòng này */
-            gap: 12px; /* Thêm dòng này */
         }
 
         .order-type {
             display: flex;
             gap: 12px;
             margin-bottom: 12px;
-            grid-column: 1 / -1; /* Thêm dòng này - cho order type chiếm full width */
         }
 
         .order-type label {
@@ -237,42 +231,37 @@
 
         /* Cart Section */
         .cart-section {
-           flex: none; /* Sửa từ flex: 1 */
+            flex: 1;
             background: white;
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             display: flex;
-            flex-direction: row; /* Sửa từ column thành row */
-            gap: 20px; /* Thêm dòng này */
-            width: 100%; /* Thêm dòng này */
-            height: 180px; /* Thêm dòng này - cố định chiều cao */
-            min-height: 180px; /* Thêm dòng này */
-            max-height: 180px; /* Thêm dòng này */
+            flex-direction: column;
         }
 
         .cart-header {
-             display: none; /* Ẩn header vì giờ nằm ngang */
-}
-        .cart-items {
-         flex: 1;
-            overflow-y: auto; /* Quan trọng - cho scroll khi nhiều món */
-            overflow-x: hidden; /* Thêm dòng này */
-            display: flex; /* Thêm dòng này */
-            gap: 8px; /* Thêm dòng này */
-            flex-wrap: wrap; /* Thêm dòng này */
-            align-content: flex-start; /* Thêm dòng này */
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e0e0e0;
         }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+
         .cart-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px; /* Giảm từ 12px */
+            padding: 12px;
             background: #f8f9fa;
             border-radius: 8px;
-            width: auto; /* Thêm dòng này */
-            min-width: 280px; /* Giảm từ 300px */
-            height: fit-content; /* Thêm dòng này */
+            margin-bottom: 8px;
         }
 
         .cart-item-info {
@@ -282,12 +271,11 @@
         .cart-item-name {
             font-weight: 600;
             margin-bottom: 4px;
-            font-size: 13px; /* Giảm kích thước chữ */
         }
 
         .cart-item-price {
             color: #666;
-            font-size: 12px; /* Giảm kích thước chữ */
+            font-size: 14px;
         }
 
         .cart-item-quantity {
@@ -297,14 +285,14 @@
         }
 
         .qty-btn {
-            width: 28px; /* Giảm từ 32px */
-            height: 28px; /* Giảm từ 32px */
+            width: 32px;
+            height: 32px;
             border: none;
             background: #3498db;
             color: white;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px; /* Giảm từ 16px */
+            font-size: 16px;
             font-weight: bold;
         }
 
@@ -319,31 +307,61 @@
         }
 
         .cart-total {
-         background: #ecf0f1;
+            background: #ecf0f1;
             padding: 16px;
             border-radius: 8px;
-            flex-shrink: 0;
-            width: 180px; /* Giảm từ 200px */
-            display: flex; /* Thêm dòng này */
-            align-items: center; /* Thêm dòng này */
-        }
-        .total-row {
-        display: flex;
-            justify-content: space-between;
-            font-size: 16px; /* Giảm từ 18px */
-            font-weight: bold;
-            width: 100%; /* Thêm dòng này */
-        }
-        .cart-actions {
-            display: flex;
-            flex-direction: column; /* Thêm dòng này */
-            gap: 10px; /* Giảm từ 12px */
-            flex-shrink: 0;
-            width: 130px; /* Giảm từ 150px */
+            margin-bottom: 16px;
         }
 
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .cart-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .reminder-box {
+    margin-top: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, #fff9e6 0%, #fff3d9 100%);
+    border: 2px solid #ffd966;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+}
+
+.reminder-emoji {
+    font-size: 32px;
+    margin-bottom: 8px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.reminder-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f39c12;
+    line-height: 1.5;
+}
+
+.reminder-subtext {
+    font-size: 13px;
+    color: #e67e22;
+    margin-top: 4px;
+    font-style: italic;
+}
+
         .btn {
-          flex: none; /* Sửa từ flex: 1 */
+            flex: 1;
             padding: 14px;
             border: none;
             border-radius: 8px;
@@ -962,13 +980,11 @@
 
         /* Cart info header */
         .cart-info-header {
-          background: #ecf0f1;
+            background: #ecf0f1;
             padding: 12px;
             border-radius: 8px;
+            margin-bottom: 12px;
             font-size: 13px;
-            flex-shrink: 0;
-            width: 250px; /* Thêm dòng này */
-            overflow-y: auto; /* Thêm dòng này - cho scroll nếu cần */
         }
 
         .cart-info-row {
@@ -1185,10 +1201,9 @@
             <span>🛍️ Shopee</span>
         </label>
     </div>
-   <!-- Số bàn và ghi chú giờ nằm trên 2 cột -->
-            <input type="text" class="table-input" placeholder="Nhập số bàn..." onchange="updateCartInfo()">
-            <textarea class="note-input" placeholder="📝 Ghi chú..." onchange="updateCartInfo()"></textarea>
-        </div>
+    <input type="text" class="table-input" placeholder="Nhập số bàn..." onchange="updateCartInfo()">
+    <textarea class="note-input" placeholder="📝 Ghi chú đơn hàng (không bắt buộc)..." onchange="updateCartInfo()"></textarea>
+</div>
 
                 <input type="text" class="search-box" placeholder="🔍 Tìm kiếm món...">
 
@@ -1235,6 +1250,12 @@
                     <button class="btn btn-cancel" onclick="clearCart()">Huỷ</button>
                     <button class="btn btn-confirm" onclick="confirmOrder()">Xác nhận</button>
                 </div>
+                <!-- THÊM PHẦN NÀY -->
+            <div class="reminder-box">
+                <div class="reminder-emoji">😊</div>
+                <div class="reminder-text">Luôn mỉm cười với khách hàng!</div>
+                <div class="reminder-subtext">Nụ cười là dịch vụ tốt nhất 💛</div>
+            </div>
             </div>
         </div>
 
