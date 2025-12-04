@@ -1680,10 +1680,17 @@
         function updateCart() {
             const cartItemsDiv = document.getElementById('cartItems');
             const cartTotalSpan = document.getElementById('cartTotal');
+            const confirmBtn = document.querySelector('.btn-confirm'); // THÊM dòng này
 
             if (cart.length === 0) {
                 cartItemsDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 40px 0;">Chưa có món nào</div>';
                 cartTotalSpan.textContent = '0đ';
+                // THÊM đoạn này - Vô hiệu hóa nút xác nhận khi giỏ hàng trống
+                if (confirmBtn) {
+                    confirmBtn.disabled = true;
+                    confirmBtn.style.opacity = '0.5';
+                    confirmBtn.style.cursor = 'not-allowed';
+                }
                 return;
             }
 
@@ -1711,6 +1718,13 @@
 
             cartItemsDiv.innerHTML = html;
             cartTotalSpan.textContent = total.toLocaleString() + 'đ';
+            
+            // THÊM đoạn này - Kích hoạt nút xác nhận khi có món trong giỏ
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.style.cursor = 'pointer';
+            }
         }
 
         function increaseQty(index) {
