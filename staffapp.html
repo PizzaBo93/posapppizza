@@ -173,6 +173,14 @@
             gap: 8px;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            padding: 12px 0;
+            margin: -12px 0 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
         }
 
         .category-btn {
@@ -231,14 +239,16 @@
 
         /* Cart Section */
         .cart-section {
-            flex: 1;
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            display: flex;
-            flex-direction: column;
-        }
+                flex: 1;
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                display: flex;
+                flex-direction: column;
+                max-height: calc(100vh - 140px); /* Giới hạn chiều cao toàn bộ */
+                overflow: hidden; /* THÊM - Ngăn overflow */
+            }
 
         .cart-header {
             font-size: 20px;
@@ -249,10 +259,13 @@
         }
 
         .cart-items {
-            flex: 1;
-            overflow-y: auto;
-            margin-bottom: 16px;
-        }
+                flex: 1; /* Chiếm hết không gian còn lại */
+                overflow-y: auto; /* Cho phép scroll */
+                overflow-x: hidden; /* Ẩn scroll ngang */
+                margin-bottom: 16px;
+                padding-right: 8px;
+                min-height: 100px; /* THÊM - Đảm bảo có chiều cao tối thiểu */
+            }
 
         .cart-item {
             display: flex;
@@ -282,6 +295,14 @@
             display: flex;
             gap: 8px;
             align-items: center;
+        }
+
+        .cart-scrollable-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 8px;
+            margin-right: -8px;
         }
 
         .qty-btn {
@@ -1235,28 +1256,32 @@
                         <span class="cart-info-value" id="cartNote">-</span>
                     </div>
                 </div>
-                <div class="cart-items" id="cartItems">
-                    <div style="text-align: center; color: #999; padding: 40px 0;">
-                        Chưa có món nào
-                    </div>
-                </div>
-                <div class="cart-total">
-                    <div class="total-row">
-                        <span>TỔNG CỘNG:</span>
-                        <span id="cartTotal">0đ</span>
-                    </div>
-                </div>
-                <div class="cart-actions">
-                    <button class="btn btn-cancel" onclick="clearCart()">Huỷ</button>
-                    <button class="btn btn-confirm" onclick="confirmOrder()">Xác nhận</button>
-                </div>
-                <!-- THÊM PHẦN NÀY -->
-            <div class="reminder-box">
-                <div class="reminder-emoji">😊</div>
-                <div class="reminder-text">Luôn mỉm cười với khách hàng!</div>
-                <div class="reminder-subtext">Nụ cười là dịch vụ tốt nhất 💛</div>
+               <!-- THÊM wrapper mới bao quanh phần có thể scroll -->
+    <div class="cart-scrollable-content">
+        <div class="cart-items" id="cartItems">
+            <div style="text-align: center; color: #999; padding: 40px 0;">
+                Chưa có món nào
             </div>
+        </div>
+        <div class="cart-total">
+            <div class="total-row">
+                <span>TỔNG CỘNG:</span>
+                <span id="cartTotal">0đ</span>
             </div>
+        </div>
+        <div class="cart-actions">
+            <button class="btn btn-cancel" onclick="clearCart()">Huỷ</button>
+            <button class="btn btn-confirm" onclick="confirmOrder()">Xác nhận</button>
+        </div>
+        <div class="reminder-box">
+            <div class="reminder-emoji">😊</div>
+            <div class="reminder-text">Luôn mỉm cười với khách hàng!</div>
+            <div class="reminder-subtext">Nụ cười là dịch vụ tốt nhất 💛</div>
+        </div>
+    </div>
+    </div>
+    <!-- KẾT THÚC wrapper -->
+            
         </div>
 
         <!-- ========== ĐƠN HIỆN TẠI ========== -->
