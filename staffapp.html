@@ -1147,6 +1147,33 @@
             display: flex;
             gap: 12px;
         }
+
+        .history-filter-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .history-filter-btn {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .history-filter-btn:hover {
+            background: #f8f8f8;
+        }
+
+        .history-filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
     </style>
 </head>
 <body>
@@ -1372,6 +1399,17 @@
             <div class="report-content">
                 <div class="report-section">
                     <div class="section-title">Lịch sử đơn đã thanh toán hôm nay</div>
+
+                    <!-- THÊM PHẦN NÀY -->
+                <div class="history-filter-tabs">
+                    <button class="history-filter-btn active" onclick="filterHistory('all')">📊 Tất cả</button>
+                    <button class="history-filter-btn" onclick="filterHistory('cash')">💵 Tiền mặt</button>
+                    <button class="history-filter-btn" onclick="filterHistory('transfer')">💳 Chuyển khoản</button>
+                    <button class="history-filter-btn" onclick="filterHistory('shopee')">🛍️ Shopee</button>
+                    <button class="history-filter-btn" onclick="filterHistory('grab')">🛵 Grab</button>
+                </div>
+                <!-- KẾT THÚC PHẦN THÊM -->
+
                     <table class="report-table">
                         <thead>
                             <tr>
@@ -1489,6 +1527,7 @@
         let addMoreCart = [];
         let addMoreCategory = 'all';
         let selectedOrderForAddMore = null;
+        let historyFilterMethod = 'all'; // Biến lưu filter hiện tại
 
         // ============================================
         // API FUNCTIONS
@@ -2524,26 +2563,53 @@
         }
 
         // 2. LỊCH SỬ REPORT
+        // Function để filter lịch sử
+        function filterHistory(method) {
+            historyFilterMethod = method;
+            
+            // Update button states
+            document.querySelectorAll('.history-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Reload history with filter
+            loadHistoryReport();
+        }
+
+        // 2. LỊCH SỬ REPORT - CẬP NHẬT
         async function loadHistoryReport() {
             try {
-                const { data: orders, error } = await supabase
+                // Build query
+                let query = supabase
                     .from('orders')
                     .select('*')
                     .eq('status', 'paid')
-                    .eq('store_code', currentStore) // THÊM dòng này
+                    .eq('store_code', currentStore)
                     .gte('created_at', `${todayDate}T00:00:00`)
-                    .lte('created_at', `${todayDate}T23:59:59`)
-                    .order('updated_at', { ascending: false });
+                    .lte('created_at', `${todayDate}T23:59:59`);
+                
+                // Apply filter if not 'all'
+                if (historyFilterMethod !== 'all') {
+                    query = query.eq('payment_method', historyFilterMethod);
+                }
+                
+                const { data: orders, error } = await query.order('updated_at', { ascending: false });
 
                 if (error) throw error;
 
                 if (orders.length === 0) {
+                    const emptyMessage = historyFilterMethod === 'all' 
+                        ? 'Chưa có đơn nào được thanh toán'
+                        : `Chưa có đơn thanh toán bằng ${getPaymentMethodName(historyFilterMethod)}`;
                     document.getElementById('historyTable').innerHTML = 
-                        '<tr><td colspan="6" style="text-align: center; color: #999;">Chưa có đơn nào được thanh toán</td></tr>';
+                        `<tr><td colspan="6" style="text-align: center; color: #999;">${emptyMessage}</td></tr>`;
                     return;
                 }
 
                 let html = '';
+                let totalFiltered = 0;
+                
                 orders.forEach(order => {
                     const orderTypeDisplay = {
                         'dine_in': '🏠 Bàn ' + (order.table_number || '?'),
@@ -2569,6 +2635,8 @@
                         minute: '2-digit'
                     });
 
+                    totalFiltered += order.total;
+
                     html += `
                         <tr>
                             <td>#${order.id}</td>
@@ -2580,6 +2648,16 @@
                         </tr>
                     `;
                 });
+                
+                // Add summary row if filtered
+                if (historyFilterMethod !== 'all') {
+                    html += `
+                        <tr style="background: #f0f8ff; font-weight: bold;">
+                            <td colspan="5" style="text-align: right;">Tổng ${getPaymentMethodName(historyFilterMethod)}:</td>
+                            <td style="color: #27ae60; font-size: 16px;">${totalFiltered.toLocaleString()}đ</td>
+                        </tr>
+                    `;
+                }
 
                 document.getElementById('historyTable').innerHTML = html;
 
@@ -2588,6 +2666,18 @@
             }
         }
 
+        // Helper function để lấy tên phương thức thanh toán
+        function getPaymentMethodName(method) {
+            const names = {
+                'cash': 'Tiền mặt',
+                'transfer': 'Chuyển khoản',
+                'grab': 'Grab',
+                'shopee': 'Shopee'
+            };
+            return names[method] || method;
+        }
+
+    
         // 3. ĐẾ BÁNH REPORT
         async function loadPizzaBasesReport() {
             try {
