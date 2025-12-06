@@ -2442,7 +2442,7 @@
                 const { error } = await supabase
                     .from('orders')
                     .update({
-                        items: JSON.stringify(currentItems),
+                        items: currentItems,
                         total: newTotal,
                         updated_at: new Date().toISOString()
                     })
