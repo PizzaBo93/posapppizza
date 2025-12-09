@@ -2678,7 +2678,7 @@
         }
 
     
-        // 3. ĐẾ BÁNH REPORT
+    // 3. ĐẾ BÁNH REPORT - SỬA LẠI ĐÚNG
         async function loadPizzaBasesReport() {
             try {
                 // Get all paid orders today
@@ -2686,20 +2686,23 @@
                     .from('orders')
                     .select('*')
                     .eq('status', 'paid')
-                    .eq('store_code', currentStore) // THÊM dòng này
+                    .eq('store_code', currentStore)
                     .gte('created_at', `${todayDate}T00:00:00`)
                     .lte('created_at', `${todayDate}T23:59:59`);
 
                 if (error) throw error;
 
-                // Count items by size (assuming menu has a field to indicate size)
-                // First, get all menu items that have size info
-                const sizeL = menuItems.filter(item => 
-                    item.name.includes('(L)') || item.name.includes('Size L')
-                );
-                const sizeS = menuItems.filter(item => 
-                    item.name.includes('(S)') || item.name.includes('Size S')
-                );
+                // Định nghĩa mapping combo -> số đế bánh
+                const comboMapping = {
+                    'c7': { L: 0, S: 1 },  // 1 bánh S
+                    'c8': { L: 0, S: 1 },  // 1 bánh S
+                    'c3': { L: 2, S: 0 },  // 2 bánh L
+                    'c1': { L: 1, S: 0 },  // 1 bánh L
+                    'c2': { L: 1, S: 0 },  // 1 bánh L
+                    'c4': { L: 1, S: 0 },  // 1 bánh L
+                    'c5': { L: 1, S: 0 },  // 1 bánh L
+                    'c6': { L: 1, S: 0 }   // 1 bánh L
+                };
 
                 let sizeLCount = 0;
                 let sizeSCount = 0;
@@ -2713,28 +2716,51 @@
                         const menuItem = menuItems.find(m => m.id === menuId);
                         if (!menuItem) return;
 
-                        // Check if item has size L or S
-                        const isL = menuItem.name.includes('(L)') || menuItem.name.includes('Size L');
-                        const isS = menuItem.name.includes('(S)') || menuItem.name.includes('Size S');
+                        // TRƯỜNG HỢP 1: Kiểm tra nếu là COMBO
+                        if (comboMapping[menuId]) {
+                            const combo = comboMapping[menuId];
+                            sizeLCount += combo.L * quantity;
+                            sizeSCount += combo.S * quantity;
 
-                        if (isL || isS) {
-                            const size = isL ? 'L' : 'S';
-                            
-                            if (isL) sizeLCount += quantity;
-                            if (isS) sizeSCount += quantity;
-
-                            // Track details
+                            // Track combo details
                             const key = menuItem.name;
                             if (!itemDetails[key]) {
                                 itemDetails[key] = {
-                                    size: size,
+                                    size: combo.L > 0 ? (combo.L > 1 ? '2×L' : 'L') : 'S',
                                     quantity: 0,
-                                    revenue: 0
+                                    revenue: 0,
+                                    bases: { L: combo.L, S: combo.S }
                                 };
                             }
                             itemDetails[key].quantity += quantity;
                             itemDetails[key].revenue += menuItem.price * quantity;
                         }
+                        // TRƯỜNG HỢP 2: Kiểm tra nếu category = 'Pizza' VÀ có size L/S
+                        else if (menuItem.category === 'Pizza') {
+                            const isL = menuItem.name.includes('(L)') || menuItem.name.includes('Size L');
+                            const isS = menuItem.name.includes('(S)') || menuItem.name.includes('Size S');
+
+                            if (isL || isS) {
+                                const size = isL ? 'L' : 'S';
+                                
+                                if (isL) sizeLCount += quantity;
+                                if (isS) sizeSCount += quantity;
+
+                                // Track details
+                                const key = menuItem.name;
+                                if (!itemDetails[key]) {
+                                    itemDetails[key] = {
+                                        size: size,
+                                        quantity: 0,
+                                        revenue: 0,
+                                        bases: isL ? { L: 1, S: 0 } : { L: 0, S: 1 }
+                                    };
+                                }
+                                itemDetails[key].quantity += quantity;
+                                itemDetails[key].revenue += menuItem.price * quantity;
+                            }
+                        }
+                        // BỎ QUA: Khoai tây chiên, Gà lắc, Tok... (không phải category Pizza)
                     });
                 });
 
@@ -2747,12 +2773,25 @@
                 if (Object.keys(itemDetails).length === 0) {
                     html = '<tr><td colspan="4" style="text-align: center; color: #999;">Chưa có dữ liệu</td></tr>';
                 } else {
-                    Object.entries(itemDetails).forEach(([name, data]) => {
+                    // Sắp xếp: Size L trước, rồi đến Size S
+                    const sortedItems = Object.entries(itemDetails).sort((a, b) => {
+                        if (a[1].bases.L > 0 && b[1].bases.L === 0) return -1;
+                        if (a[1].bases.L === 0 && b[1].bases.L > 0) return 1;
+                        return 0;
+                    });
+
+                    sortedItems.forEach(([name, data]) => {
+                        // Tính tổng số đế từ món này
+                        const totalBases = (data.bases.L + data.bases.S) * data.quantity;
+                        const baseInfo = data.bases.L > 0 
+                            ? `${data.bases.L * data.quantity} đế L`
+                            : `${data.bases.S * data.quantity} đế S`;
+
                         html += `
                             <tr>
                                 <td><strong>${data.size}</strong></td>
                                 <td>${name}</td>
-                                <td>${data.quantity} cái</td>
+                                <td>${data.quantity} ${data.bases.L + data.bases.S > 1 ? 'combo' : 'món'} <span style="color: #666; font-size: 12px;">(${baseInfo})</span></td>
                                 <td style="font-weight: bold; color: #27ae60;">${data.revenue.toLocaleString()}đ</td>
                             </tr>
                         `;
